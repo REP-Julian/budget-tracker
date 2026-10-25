@@ -1,0 +1,24 @@
+[package]
+name = "budget-tracker-app"
+version = "0.1.0"
+description = "Budget Tracker Native App Shell"
+authors = ["Julian Agustino"]
+edition = "2021"
+
+[lib]
+name = "budget_tracker_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-deep-link = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.21"
+ndk-context = "0.1"

@@ -1,0 +1,75 @@
+/**
+ * Eye-Friendly Soothing Light Theme (Nordic / Linear Minimalist)
+ * Warm off-white canvas, obsidian balance card, high-contrast readable slate typography
+ * Zero harsh blinding glare, zero unreadable neon yellow on white
+ */
+
+:root[data-theme="light"],
+html[data-theme="light"],
+body[data-theme="light"],
+[data-theme="light"] {
+  /* Warm neutral canvas - stops eye strain / retina glare */
+  --bg-app: #ECEFF3;
+  --bg-frame: #F8FAFC;
+  --card-surface: #FFFFFF;
+  --card-elevated: #F1F5F9;
+  --card-border: rgba(15, 23, 42, 0.08);
+
+  /* Refined slate typography - deep, crisp, readable */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  --badge-bg: #E2E8F0;
+
+  /* Accent Highlight - Sleek midnight navy (replaces glaring neon yellow) */
+  --neon-yellow: #0F172A;
+  --neon-yellow-text: #FFFFFF;
+  --neon-yellow-glow: rgba(15, 23, 42, 0.12);
+
+  /* Semantic Hues - Calibrated for high readability on light surfaces */
+  --accent-cyan: #0284C7;
+  --accent-blue: #2563EB;
+  --accent-pink: #E11D48;
+  --accent-green: #16A34A;
+  --accent-purple: #7C3AED;
+  --accent-orange: #D97706;
+
+  /* Hero Balance Card - Luxurious obsidian anchor with crisp white typography */
+  --hero-card-bg: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  --hero-card-text: #FFFFFF;
+  --hero-card-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+  --hero-pill-bg: rgba(255, 255, 255, 0.14);
+  --hero-pill-text: #FFFFFF;
+  --hero-stat-border: rgba(255, 255, 255, 0.12);
+  --hero-stat-circle-bg: rgba(255, 255, 255, 0.12);
+  --hero-stat-circle-color: #FFFFFF;
+
+  /* Primary Action Button - Sleek midnight pill */
+  --btn-primary-bg: #0F172A;
+  --btn-primary-text: #FFFFFF;
+
+  /* Center AI Button */
+  --dock-ai-bg: #0F172A;
+  --dock-ai-text: #FFFFFF;
+  --dock-ai-glow: rgba(15, 23, 42, 0.15);
+
+  /* Modals */
+  --modal-overlay-bg: rgba(15, 23, 42, 0.45);
+  --shadow-modal: 0 -10px 30px rgba(0, 0, 0, 0.08);
+
+  /* Floating Dock */
+  --dock-bg: rgba(255, 255, 255, 0.95);
+  --dock-border: rgba(15, 23, 42, 0.1);
+  --dock-btn-active: #0F172A;
+  --dock-btn-active-text: #FFFFFF;
+  --shadow-dock: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.04);
+  --frame-border: rgba(15, 23, 42, 0.1);
+  --frame-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+
+  /* Micro accents */
+  --role-accent-color: #0284C7;
+  --role-accent-bg: rgba(2, 132, 199, 0.08);
+  --role-accent-border: rgba(2, 132, 199, 0.2);
+  --divider-color: rgba(15, 23, 42, 0.06);
+}

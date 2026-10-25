@@ -1,0 +1,71 @@
+/**
+ * Noir Aesthetic (Reference UI 99% replication)
+ * Midnight navy surfaces, neon chartreuse accents, soft glowing rings
+ */
+
+:root,
+[data-theme="dark"],
+:root[data-theme="dark"] {
+  --bg-app: #080C15;
+  --bg-frame: #0E1524;
+  --card-surface: #151D2C;
+  --card-elevated: #1B2436;
+  --card-border: rgba(255, 255, 255, 0.08);
+
+  --text-primary: #FFFFFF;
+  --text-secondary: #94A3B8;
+  --text-muted: #566479;
+  --badge-bg: #1F2A3F;
+
+  /* Reference Highlight: High-voltage Chartreuse */
+  --neon-yellow: #E8F953;
+  --neon-yellow-text: #0D1424;
+  --neon-yellow-glow: rgba(232, 249, 83, 0.28);
+
+  /* Reference Accent Hues */
+  --accent-cyan: #00E5FF;
+  --accent-blue: #38BDF8;
+  --accent-pink: #F43F5E;
+  --accent-green: #22C55E;
+  --accent-purple: #A855F7;
+  --accent-orange: #FB923C;
+
+  /* Hero Balance Card */
+  --hero-card-bg: var(--neon-yellow);
+  --hero-card-text: var(--neon-yellow-text);
+  --hero-card-shadow: 0 12px 32px var(--neon-yellow-glow);
+  --hero-pill-bg: rgba(13, 20, 36, 0.14);
+  --hero-pill-text: #0D1424;
+  --hero-stat-border: rgba(13, 20, 36, 0.12);
+  --hero-stat-circle-bg: rgba(13, 20, 36, 0.12);
+  --hero-stat-circle-color: #0D1424;
+
+  /* Buttons & CTAs */
+  --btn-primary-bg: var(--neon-yellow);
+  --btn-primary-text: var(--neon-yellow-text);
+
+  /* Center AI Button */
+  --dock-ai-bg: var(--neon-yellow);
+  --dock-ai-text: var(--neon-yellow-text);
+  --dock-ai-glow: var(--neon-yellow-glow);
+
+  /* Modals */
+  --modal-overlay-bg: rgba(0, 0, 0, 0.75);
+  --shadow-modal: 0 -12px 40px rgba(0, 0, 0, 0.6);
+
+  /* Micro accents */
+  --role-accent-color: var(--neon-yellow);
+  --role-accent-bg: rgba(232, 249, 83, 0.15);
+  --role-accent-border: rgba(232, 249, 83, 0.3);
+  --divider-color: rgba(255, 255, 255, 0.04);
+
+  /* Dock and Elevated Shadows */
+  --dock-bg: #141A28;
+  --dock-border: rgba(255, 255, 255, 0.09);
+  --dock-btn-active: #FFFFFF;
+  --dock-btn-active-text: #0E1524;
+  --shadow-dock: 0 14px 35px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --frame-border: rgba(255, 255, 255, 0.12);
+  --frame-shadow: 0 30px 60px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}

@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Production output
+dist/
+dist-ssr/
+*.local
+
+# Tauri & Rust build artifacts
+src-tauri/target/
+src-tauri/gen/android/app/build/
+src-tauri/gen/android/.gradle/
+src-tauri/gen/android/local.properties
+
+# Android build outputs & APKs
+*.apk
+*.aab
+
+# Environment and sensitive keys
+.env
+.env.*
+!.env.example
+
+# IDE & OS files
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Agent temporary folders
+.agents/
+.superpowers/

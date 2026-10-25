@@ -1,0 +1,85 @@
+.assets-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.networth-hero-card {
+  background: var(--card-surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-2xl);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.networth-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.networth-amount {
+  font-size: 2rem;
+  font-weight: var(--font-weight-black);
+  letter-spacing: -0.5px;
+  margin: 4px 0 6px;
+  color: var(--text-primary);
+}
+
+.networth-sub {
+  font-size: var(--font-size-xs);
+  color: var(--accent-green);
+  font-weight: var(--font-weight-semibold);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.asset-classes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.asset-item-card {
+  background: var(--card-surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-card);
+}
+
+.asset-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.asset-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.asset-item-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.asset-item-sub {
+  font-size: var(--font-size-2xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.asset-item-val {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-black);
+  color: var(--text-primary);
+}

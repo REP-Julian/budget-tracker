@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="128" fill="#0B111E"/>
+  <rect x="24" y="24" width="464" height="464" rx="104" fill="#151D2C" stroke="#E8F953" stroke-width="8"/>
+  <!-- Glowing circle -->
+  <circle cx="256" cy="256" r="140" fill="none" stroke="#00E5FF" stroke-width="16" stroke-dasharray="20 10"/>
+  <!-- Wallet Body -->
+  <rect x="156" y="196" width="200" height="140" rx="24" fill="#E8F953"/>
+  <rect x="276" y="236" width="80" height="60" rx="16" fill="#0D1424"/>
+  <circle cx="316" cy="266" r="10" fill="#E8F953"/>
+  <!-- Sparkles -->
+  <polygon points="370,140 376,160 396,166 376,172 370,192 364,172 344,166 364,160" fill="#00E5FF"/>
+  <polygon points="140,330 144,345 159,349 144,353 140,368 136,353 121,349 136,345" fill="#E8F953"/>
+</svg>

@@ -1,0 +1,172 @@
+/* Top Header */
+.app-top-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: max(20px, env(safe-area-inset-top, 24px));
+  padding-bottom: 12px;
+  padding-left: max(var(--spacing-4), env(safe-area-inset-left, 16px));
+  padding-right: max(var(--spacing-4), env(safe-area-inset-right, 16px));
+  background: var(--bg-frame);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.profile-chip-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card-surface);
+  border: 1px solid var(--card-border);
+  padding: 5px 12px 5px 6px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.profile-chip-btn:hover {
+  border-color: var(--neon-yellow);
+  box-shadow: 0 0 12px rgba(232, 249, 83, 0.2);
+}
+
+.profile-chip-btn:active {
+  transform: scale(0.96);
+}
+
+.profile-chip-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xs);
+  overflow: hidden;
+}
+
+.profile-chip-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-chip-name {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.profile-chip-role {
+  font-size: 0.625rem;
+  color: var(--role-accent-color, var(--neon-yellow));
+  font-weight: var(--font-weight-medium);
+}
+
+.header-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Floating Bottom Dock (Fixed at phone viewport bottom) */
+.dock-bar-wrapper {
+  position: fixed;
+  bottom: max(16px, env(safe-area-inset-bottom, 20px));
+  left: 0;
+  right: 0;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-4);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.floating-bottom-dock {
+  background: var(--dock-bg);
+  border: 1px solid var(--dock-border);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: var(--shadow-dock);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+.dock-action-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: var(--transition-fast);
+}
+
+.dock-action-btn:hover {
+  color: var(--text-primary);
+}
+
+.dock-action-btn.active {
+  background: var(--dock-btn-active);
+  color: var(--dock-btn-active-text);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Center AI Assistant Button */
+.dock-ai-center-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dock-ai-bg, var(--neon-yellow));
+  color: var(--dock-ai-text, var(--neon-yellow-text));
+  border: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--dock-ai-glow, var(--neon-yellow-glow));
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dock-ai-center-btn:active {
+  transform: scale(0.92);
+}
+
+.dock-ai-center-btn.active {
+  background: var(--dock-btn-active);
+  color: var(--dock-btn-active-text);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.dock-add-plus {
+  background: var(--btn-primary-bg, var(--neon-yellow));
+  color: var(--btn-primary-text, var(--neon-yellow-text));
+  font-weight: var(--font-weight-black);
+  box-shadow: 0 6px 20px var(--dock-ai-glow, var(--neon-yellow-glow));
+}
+
+.dock-add-plus:hover {
+  transform: scale(1.06);
+}
+
+.dock-add-plus:active {
+  transform: scale(0.94);
+}

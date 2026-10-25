@@ -1,0 +1,229 @@
+.stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+/* Tabs: Categories vs Monthly Spending */
+.stats-tab-bar {
+  background: var(--card-surface);
+  border-radius: var(--radius-full);
+  padding: 4px;
+  display: flex;
+  gap: 4px;
+}
+
+.stats-tab-btn {
+  flex: 1;
+  text-align: center;
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  transition: var(--transition-fast);
+}
+
+.stats-tab-btn.active {
+  background: var(--card-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-card);
+}
+
+/* Donut Chart Container */
+.donut-wrapper {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  margin: var(--spacing-2) auto var(--spacing-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donut-center-info {
+  position: absolute;
+  text-align: center;
+  pointer-events: none;
+}
+
+.donut-center-amt {
+  font-size: 1.625rem;
+  font-weight: var(--font-weight-black);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.donut-center-month {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* 2x2 Categories Grid */
+.categories-2x2-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.category-tile-card {
+  background: var(--card-surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 110px;
+  box-shadow: var(--shadow-card);
+}
+
+.cat-tile-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cat-tile-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cat-tile-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.cat-tile-count {
+  font-size: var(--font-size-2xs);
+  color: var(--text-muted);
+}
+
+.cat-tile-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.cat-tile-amount {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.cat-tile-trend {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  margin-top: 2px;
+}
+
+.cat-tile-pct-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Monthly Spending Chart Section */
+.chart-card-container {
+  background: var(--card-surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-2xl);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.chart-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.chart-card-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.chart-card-val {
+  font-size: 1.625rem;
+  font-weight: var(--font-weight-black);
+  letter-spacing: -0.5px;
+  margin: 2px 0 3px;
+}
+
+.chart-card-subtrend {
+  font-size: var(--font-size-xs);
+  color: var(--accent-green);
+  font-weight: var(--font-weight-semibold);
+}
+
+.chart-card-legend {
+  display: flex;
+  gap: 12px;
+  font-size: var(--font-size-xs);
+}
+
+.timeframe-pill-row {
+  display: flex;
+  background: var(--badge-bg);
+  border-radius: var(--radius-full);
+  padding: 3px;
+  gap: 2px;
+  margin-top: 14px;
+  justify-content: space-between;
+}
+
+.timeframe-btn {
+  font-size: var(--font-size-2xs);
+  padding: 5px 9px;
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  transition: var(--transition-fast);
+}
+
+.timeframe-btn.active {
+  background: var(--dock-btn-active);
+  color: var(--dock-btn-active-text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Smart Insight Cards */
+.insights-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.insight-card-item {
+  background: var(--card-surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  padding: 14px;
+  font-size: var(--font-size-xs);
+  line-height: 1.45;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-card);
+}
+
+.insight-card-item strong {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+}
