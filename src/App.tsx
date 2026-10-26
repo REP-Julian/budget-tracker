@@ -155,6 +155,17 @@ export const App: React.FC = () => {
       if ((event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') && session?.user) {
         await onUserAuthenticated(session.user);
       } else if (event === 'SIGNED_OUT') {
+        // Clear Supabase session keys from localStorage
+        try {
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('sb-') || key.includes('supabase.auth'))) {
+              localStorage.removeItem(key);
+            }
+          }
+        } catch {
+          // ignore
+        }
         // Clear all state and device storage so previous user's data does not linger
         setProfile(INITIAL_PROFILE);
         setWallets(INITIAL_WALLETS);
@@ -540,7 +551,22 @@ export const App: React.FC = () => {
                     onUpdateProfile={handleUpdateProfile}
                     onOpenAuth={() => setIsAuthModalOpen(true)}
                     onSignOut={async () => {
-                      await supabase.auth.signOut();
+                      try {
+                        await supabase.auth.signOut();
+                      } catch (err) {
+                        console.warn('SignOut error:', err);
+                      }
+                      // Clear Supabase local storage session tokens explicitly
+                      try {
+                        for (let i = localStorage.length - 1; i >= 0; i--) {
+                          const key = localStorage.key(i);
+                          if (key && (key.startsWith('sb-') || key.includes('supabase.auth'))) {
+                            localStorage.removeItem(key);
+                          }
+                        }
+                      } catch {
+                        // ignore
+                      }
                       setProfile(INITIAL_PROFILE);
                       setWallets(INITIAL_WALLETS);
                       setTransactions([]);
@@ -549,6 +575,7 @@ export const App: React.FC = () => {
                       await storageService.clearAllData();
                       await OfflineQueueManager.clearQueue();
                       setPendingSyncCount(0);
+                      setCurrentTab('home');
                     }}
                     onResetData={async () => {
                       await storageService.clearAllData();

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   User,
   Mail,
@@ -65,6 +65,23 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
   const [detectError, setDetectError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync component state if profile prop changes (e.g. after sign in or sign out)
+  useEffect(() => {
+    setUsername(profile.username || '');
+    setFullName(profile.fullName || '');
+    setEmail(profile.email || '');
+    setContactNumber(profile.contactNumber || '');
+    setRole(profile.role || 'Primary Earner');
+    setCurrency(profile.currency || 'PHP');
+    setDailyCap((profile.dailyNecessityCap || 500).toString());
+    setRestCap((profile.restDayNecessityCap !== undefined ? profile.restDayNecessityCap : 150).toString());
+    setActiveDays(profile.activeScheduleDays || [1, 2, 4, 5, 6]);
+    setAvatarUrl(profile.avatarUrl);
+    setAiBaseUrl(profile.aiBaseUrl || '');
+    setAiApiKey(profile.aiApiKey || '');
+    setAiModel(profile.aiModel || '');
+  }, [profile]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
