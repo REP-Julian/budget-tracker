@@ -8,7 +8,74 @@ export const databaseApi = {
       console.warn('Supabase fetch wallets error:', error.message);
       return null;
     }
-    return data as Wallet[];
+    return (data || []).map((w: any) => ({
+      id: w.id,
+      name: w.name,
+      type: w.type,
+      balance: Number(w.balance || 0),
+      currency: w.currency || 'USD',
+      icon: w.icon || 'wallet',
+      updatedAt: w.updated_at || new Date().toISOString(),
+    }));
+  },
+
+  async fetchRemoteTransactions(): Promise<Transaction[] | null> {
+    const { data, error } = await supabase.from('bt_transactions').select('*').order('date', { ascending: false });
+    if (error) {
+      console.warn('Supabase fetch transactions error:', error.message);
+      return null;
+    }
+    return (data || []).map((t: any) => ({
+      id: t.id,
+      walletId: t.wallet_id,
+      type: t.type,
+      amount: Number(t.amount || 0),
+      category: t.category,
+      isNecessity: Boolean(t.is_necessity),
+      date: t.date,
+      notes: t.notes || undefined,
+      tax: Number(t.tax || 0),
+      syncStatus: 'synced' as const,
+    }));
+  },
+
+  async fetchRemoteLoans(): Promise<Loan[] | null> {
+    const { data, error } = await supabase.from('bt_loans').select('*').order('lent_date', { ascending: false });
+    if (error) {
+      console.warn('Supabase fetch loans error:', error.message);
+      return null;
+    }
+    return (data || []).map((l: any) => ({
+      id: l.id,
+      walletId: l.wallet_id,
+      borrowerName: l.borrower_name,
+      borrowerContact: l.borrower_contact || undefined,
+      principalAmount: Number(l.principal_amount || 0),
+      remainingAmount: Number(l.remaining_amount || 0),
+      lentDate: l.lent_date,
+      dueDate: l.due_date || undefined,
+      status: l.status,
+      notes: l.notes || undefined,
+      repayments: [],
+      syncStatus: 'synced' as const,
+    }));
+  },
+
+  async fetchRemoteAssets(): Promise<Asset[] | null> {
+    const { data, error } = await supabase.from('bt_assets').select('*');
+    if (error) {
+      console.warn('Supabase fetch assets error:', error.message);
+      return null;
+    }
+    return (data || []).map((a: any) => ({
+      id: a.id,
+      name: a.name,
+      assetClass: a.asset_class,
+      value: Number(a.value || 0),
+      acquisitionDate: a.acquisition_date || undefined,
+      notes: a.notes || undefined,
+      syncStatus: 'synced' as const,
+    }));
   },
 
   async upsertRemoteWallet(wallet: Wallet): Promise<boolean> {

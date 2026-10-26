@@ -19,6 +19,12 @@
   - Added dedicated **Save AI Configuration** action button in Section 3 of Profile & Settings with visual confirmation.
   - Fixed stale closure in `onUserAuthenticated` and `onAuthSuccess` to read fresh credentials from device storage.
 
+- **Cloud Database Hydration on Login & Instant Mutation Sync**:
+  - Fixed issue where logging in after logging out reset local data and failed to restore cloud data.
+  - Implemented automatic full cloud fetch (`fetchRemoteWallets`, `fetchRemoteTransactions`, `fetchRemoteLoans`, `fetchRemoteAssets`) upon login (`onUserAuthenticated`) and on app launch (`loadData`).
+  - Added instant wallet balance mutation sync whenever transactions, loans, and repayments are added or deleted.
+  - Enabled immediate offline-queue processing triggers after every database mutation.
+
 - **Modal Bottom-Sheet Layout & Android WebView Viewport Fit**:
   - Fixed issue where modal dialogs (Lend Money, Add Asset, Repayments, Quick Add, Search, Notifications, Auth) floated in the top half of the screen with a large empty black space underneath.
   - Ported all modals to mount directly into `document.body` via React's `createPortal`, decoupling them from internal scroll containers (`PullToRefresh` / `screen-scroll-container`).

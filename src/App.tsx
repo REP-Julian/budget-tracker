@@ -69,13 +69,24 @@ export const App: React.FC = () => {
       const { data: { session } } = await supabase.auth.getSession();
       let effectiveProfile = p;
 
+      let activeWallets = w;
+      let activeTransactions = t;
+      let activeLoans = l;
+      let activeAssets = a;
+
       if (session?.user) {
         if (typeof window !== 'undefined' && window.history?.replaceState) {
           if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
             window.history.replaceState({}, document.title, window.location.pathname);
           }
         }
-        const remoteProfile = await databaseApi.fetchRemoteProfile(session.user.id);
+        const [remoteProfile, rWallets, rTransactions, rLoans, rAssets] = await Promise.all([
+          databaseApi.fetchRemoteProfile(session.user.id),
+          databaseApi.fetchRemoteWallets(),
+          databaseApi.fetchRemoteTransactions(),
+          databaseApi.fetchRemoteLoans(),
+          databaseApi.fetchRemoteAssets(),
+        ]);
         const meta = session.user.user_metadata || {};
         const googleAvatar = meta.avatar_url || meta.picture;
         const googleName = meta.full_name || meta.name;
@@ -94,6 +105,23 @@ export const App: React.FC = () => {
           };
           await storageService.saveProfile(effectiveProfile);
         }
+
+        if (rWallets && rWallets.length > 0) {
+          activeWallets = rWallets;
+          await storageService.saveWallets(rWallets);
+        }
+        if (rTransactions) {
+          activeTransactions = rTransactions;
+          await storageService.saveTransactions(rTransactions);
+        }
+        if (rLoans) {
+          activeLoans = rLoans;
+          await storageService.saveLoans(rLoans);
+        }
+        if (rAssets) {
+          activeAssets = rAssets;
+          await storageService.saveAssets(rAssets);
+        }
       } else {
         // Not authenticated in Supabase - reset if profile still held an authenticated email
         if (effectiveProfile.email) {
@@ -109,10 +137,10 @@ export const App: React.FC = () => {
         }
       }
 
-      setWallets(w);
-      setTransactions(t);
-      setLoans(l);
-      setAssets(a);
+      setWallets(activeWallets);
+      setTransactions(activeTransactions);
+      setLoans(activeLoans);
+      setAssets(activeAssets);
       setProfile(effectiveProfile);
       if (effectiveProfile.theme && effectiveProfile.theme !== theme) {
         setTheme(effectiveProfile.theme);
@@ -167,6 +195,31 @@ export const App: React.FC = () => {
           restDayNecessityCap: localProfile.restDayNecessityCap !== undefined ? localProfile.restDayNecessityCap : 150,
         };
       }
+      // Fetch all remote financial entities for this authenticated user
+      const [rWallets, rTransactions, rLoans, rAssets] = await Promise.all([
+        databaseApi.fetchRemoteWallets(),
+        databaseApi.fetchRemoteTransactions(),
+        databaseApi.fetchRemoteLoans(),
+        databaseApi.fetchRemoteAssets(),
+      ]);
+
+      if (rWallets && rWallets.length > 0) {
+        setWallets(rWallets);
+        await storageService.saveWallets(rWallets);
+      }
+      if (rTransactions) {
+        setTransactions(rTransactions);
+        await storageService.saveTransactions(rTransactions);
+      }
+      if (rLoans) {
+        setLoans(rLoans);
+        await storageService.saveLoans(rLoans);
+      }
+      if (rAssets) {
+        setAssets(rAssets);
+        await storageService.saveAssets(rAssets);
+      }
+
       setProfile(remote);
       await storageService.saveProfile(remote);
       setIsAuthModalOpen(false);
@@ -322,7 +375,13 @@ export const App: React.FC = () => {
     await storageService.saveWallets(updatedWallets);
     await storageService.saveTransactions(updatedTxs);
     await OfflineQueueManager.enqueue('transactions', 'insert', newTx);
-    setPendingSyncCount(await OfflineQueueManager.getPendingCount());
+    const changedWallet = updatedWallets.find(w => w.id === data.walletId);
+    if (changedWallet) {
+      await OfflineQueueManager.enqueue('wallets', 'update', changedWallet);
+    }
+    SyncService.processOfflineQueue().then(() => {
+      OfflineQueueManager.getPendingCount().then(setPendingSyncCount);
+    });
   };
 
   // Handler for deleting a transaction and reversing wallet balance
@@ -353,7 +412,13 @@ export const App: React.FC = () => {
     await storageService.saveWallets(updatedWallets);
     await storageService.saveTransactions(updatedTxs);
     await OfflineQueueManager.enqueue('transactions', 'delete', { id });
-    setPendingSyncCount(await OfflineQueueManager.getPendingCount());
+    const changedWallet = updatedWallets.find(w => w.id === targetTx.walletId);
+    if (changedWallet) {
+      await OfflineQueueManager.enqueue('wallets', 'update', changedWallet);
+    }
+    SyncService.processOfflineQueue().then(() => {
+      OfflineQueueManager.getPendingCount().then(setPendingSyncCount);
+    });
   };
 
   // Handlers for lending money
@@ -384,7 +449,13 @@ export const App: React.FC = () => {
     await storageService.saveWallets(updatedWallets);
     await storageService.saveLoans(updatedLoans);
     await OfflineQueueManager.enqueue('loans', 'insert', newLoan);
-    setPendingSyncCount(await OfflineQueueManager.getPendingCount());
+    const changedWallet = updatedWallets.find(w => w.id === data.sourceWalletId);
+    if (changedWallet) {
+      await OfflineQueueManager.enqueue('wallets', 'update', changedWallet);
+    }
+    SyncService.processOfflineQueue().then(() => {
+      OfflineQueueManager.getPendingCount().then(setPendingSyncCount);
+    });
   };
 
   // Handlers for loan repayment
@@ -410,7 +481,13 @@ export const App: React.FC = () => {
     await storageService.saveWallets(updatedWallets);
     await storageService.saveLoans(updatedLoans);
     await OfflineQueueManager.enqueue('loans', 'update', updatedLoan);
-    setPendingSyncCount(await OfflineQueueManager.getPendingCount());
+    const changedWallet = updatedWallets.find(w => w.id === destinationWalletId);
+    if (changedWallet) {
+      await OfflineQueueManager.enqueue('wallets', 'update', changedWallet);
+    }
+    SyncService.processOfflineQueue().then(() => {
+      OfflineQueueManager.getPendingCount().then(setPendingSyncCount);
+    });
   };
 
   // Handler for assets
@@ -435,7 +512,9 @@ export const App: React.FC = () => {
 
     await storageService.saveAssets(updatedAssets);
     await OfflineQueueManager.enqueue('assets', 'insert', newAsset);
-    setPendingSyncCount(await OfflineQueueManager.getPendingCount());
+    SyncService.processOfflineQueue().then(() => {
+      OfflineQueueManager.getPendingCount().then(setPendingSyncCount);
+    });
   };
 
   // Handler for profile updates
@@ -443,6 +522,9 @@ export const App: React.FC = () => {
     setProfile(updated);
     await storageService.saveProfile(updated);
     await OfflineQueueManager.enqueue('profile', 'update', updated);
+    SyncService.processOfflineQueue().then(() => {
+      OfflineQueueManager.getPendingCount().then(setPendingSyncCount);
+    });
   };
 
   return (
