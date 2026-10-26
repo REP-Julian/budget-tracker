@@ -1,14 +1,15 @@
 import React from 'react';
-import { User, CheckCircle2, DollarSign } from 'lucide-react';
+import { User, CheckCircle2, DollarSign, Trash2 } from 'lucide-react';
 import { Loan } from '../../types';
 
 interface LoanCardProps {
   loan: Loan;
   onRepay: (loan: Loan) => void;
+  onDelete?: (loan: Loan) => void;
   currencySymbol?: string;
 }
 
-export const LoanCard: React.FC<LoanCardProps> = ({ loan, onRepay, currencySymbol = '$' }) => {
+export const LoanCard: React.FC<LoanCardProps> = ({ loan, onRepay, onDelete, currencySymbol = '$' }) => {
   const getStatusBadge = (status: Loan['status']) => {
     switch (status) {
       case 'settled':
@@ -23,7 +24,7 @@ export const LoanCard: React.FC<LoanCardProps> = ({ loan, onRepay, currencySymbo
   const isSettled = loan.remainingAmount === 0;
 
   return (
-    <div className="loan-card-item" style={{ opacity: isSettled ? 0.6 : 1 }}>
+    <div className="loan-card-item" style={{ opacity: isSettled ? 0.75 : 1 }}>
       <div className="loan-card-header">
         <div className="borrower-info">
           <div className="borrower-avatar-icon">
@@ -38,7 +39,19 @@ export const LoanCard: React.FC<LoanCardProps> = ({ loan, onRepay, currencySymbo
             )}
           </div>
         </div>
-        {getStatusBadge(loan.status)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {getStatusBadge(loan.status)}
+          {onDelete && (
+            <button
+              className="loan-btn delete"
+              style={{ width: '28px', height: '28px', padding: 0 }}
+              title="Delete loan record"
+              onClick={() => onDelete(loan)}
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="loan-financial-row">

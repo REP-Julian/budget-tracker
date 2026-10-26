@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Banknote, Handshake, Coins, Building, Plus } from 'lucide-react';
+import { Banknote, Handshake, Coins, Building, Plus, Trash2 } from 'lucide-react';
 import { AddAssetModal } from './AddAssetModal';
 import { Wallet, Loan, Asset, AssetClass } from '../../types';
 import { FinanceEngine } from '../../services/financeEngine';
@@ -15,6 +15,7 @@ interface AssetsScreenProps {
     value: number;
     notes?: string;
   }) => void;
+  onDeleteAsset?: (asset: Asset) => void;
   currencySymbol?: string;
 }
 
@@ -23,6 +24,7 @@ export const AssetsScreen: React.FC<AssetsScreenProps> = ({
   loans,
   assets,
   onAddAsset,
+  onDeleteAsset,
   currencySymbol = '$',
 }) => {
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -129,8 +131,19 @@ export const AssetsScreen: React.FC<AssetsScreenProps> = ({
                 </div>
               </div>
             </div>
-            <div className="asset-item-val">
-              {currencySymbol}{ast.value.toFixed(2)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="asset-item-val">
+                {currencySymbol}{ast.value.toFixed(2)}
+              </div>
+              {onDeleteAsset && (
+                <button
+                  className="asset-delete-btn"
+                  title="Delete asset"
+                  onClick={() => onDeleteAsset(ast)}
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
             </div>
           </div>
         ))}

@@ -517,6 +517,30 @@ export const App: React.FC = () => {
     });
   };
 
+  // Handler for deleting a loan (borrower record)
+  const handleDeleteLoan = async (loan: Loan) => {
+    if (!window.confirm(`Delete borrower record for "${loan.borrowerName}"?`)) return;
+    const updatedLoans = loans.filter((l) => l.id !== loan.id);
+    setLoans(updatedLoans);
+    await storageService.saveLoans(updatedLoans);
+    await OfflineQueueManager.enqueue('loans', 'delete', { id: loan.id });
+    SyncService.processOfflineQueue().then(() => {
+      OfflineQueueManager.getPendingCount().then(setPendingSyncCount);
+    });
+  };
+
+  // Handler for deleting an asset
+  const handleDeleteAsset = async (asset: Asset) => {
+    if (!window.confirm(`Delete asset "${asset.name}"?`)) return;
+    const updatedAssets = assets.filter((a) => a.id !== asset.id);
+    setAssets(updatedAssets);
+    await storageService.saveAssets(updatedAssets);
+    await OfflineQueueManager.enqueue('assets', 'delete', { id: asset.id });
+    SyncService.processOfflineQueue().then(() => {
+      OfflineQueueManager.getPendingCount().then(setPendingSyncCount);
+    });
+  };
+
   // Handler for profile updates
   const handleUpdateProfile = async (updated: UserProfile) => {
     setProfile(updated);
@@ -616,6 +640,7 @@ export const App: React.FC = () => {
                     currencySymbol={currencySymbol}
                     onLendMoney={handleLendMoney}
                     onRepayLoan={handleRepayLoan}
+                    onDeleteLoan={handleDeleteLoan}
                   />
                 )}
 
@@ -649,6 +674,7 @@ export const App: React.FC = () => {
                     assets={assets}
                     currencySymbol={currencySymbol}
                     onAddAsset={handleAddAsset}
+                    onDeleteAsset={handleDeleteAsset}
                   />
                 )}
 

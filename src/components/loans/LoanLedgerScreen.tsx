@@ -20,6 +20,7 @@ interface LoanLedgerScreenProps {
     notes?: string;
   }) => void;
   onRepayLoan: (loan: Loan, amount: number, destinationWalletId: string, notes?: string) => void;
+  onDeleteLoan?: (loan: Loan) => void;
 }
 
 export const LoanLedgerScreen: React.FC<LoanLedgerScreenProps> = ({
@@ -28,6 +29,7 @@ export const LoanLedgerScreen: React.FC<LoanLedgerScreenProps> = ({
   currencySymbol = '$',
   onLendMoney,
   onRepayLoan,
+  onDeleteLoan,
 }) => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [repayingLoan, setRepayingLoan] = useState<Loan | null>(null);
@@ -80,6 +82,7 @@ export const LoanLedgerScreen: React.FC<LoanLedgerScreenProps> = ({
             loan={loan}
             currencySymbol={currencySymbol}
             onRepay={(l) => setRepayingLoan(l)}
+            onDelete={onDeleteLoan}
           />
         ))}
         {loans.length === 0 && (
@@ -101,10 +104,12 @@ export const LoanLedgerScreen: React.FC<LoanLedgerScreenProps> = ({
         <RepaymentModal
           loan={repayingLoan}
           wallets={wallets}
-          isOpen={true}
-          currencySymbol={currencySymbol}
+          isOpen={!!repayingLoan}
           onClose={() => setRepayingLoan(null)}
-          onSubmit={(amt, destId, notes) => onRepayLoan(repayingLoan, amt, destId, notes)}
+          onSubmit={(amount, destinationWalletId, notes) => {
+            onRepayLoan(repayingLoan, amount, destinationWalletId, notes);
+            setRepayingLoan(null);
+          }}
         />
       )}
     </div>

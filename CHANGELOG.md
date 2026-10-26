@@ -19,6 +19,11 @@
   - Added dedicated **Save AI Configuration** action button in Section 3 of Profile & Settings with visual confirmation.
   - Fixed stale closure in `onUserAuthenticated` and `onAuthSuccess` to read fresh credentials from device storage.
 
+- **Borrower Account & Asset Portfolio Deletion**:
+  - Added delete actions (`Trash2`) on borrower loan cards in `LoanLedgerScreen`.
+  - Added delete actions (`Trash2`) on custom asset holdings in `AssetsScreen`.
+  - Connected deletions to local state, IndexedDB storage, and immediate cloud sync delete operations (`bt_loans`, `bt_assets`).
+
 - **Cloud Database Hydration on Login & Instant Mutation Sync**:
   - Fixed issue where logging in after logging out reset local data and failed to restore cloud data.
   - Implemented automatic full cloud fetch (`fetchRemoteWallets`, `fetchRemoteTransactions`, `fetchRemoteLoans`, `fetchRemoteAssets`) upon login (`onUserAuthenticated`) and on app launch (`loadData`).
