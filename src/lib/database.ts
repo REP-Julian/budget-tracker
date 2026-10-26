@@ -79,7 +79,8 @@ export const databaseApi = {
   },
 
   async upsertRemoteWallet(wallet: Wallet): Promise<boolean> {
-    const payload = {
+    const { data: { session } } = await supabase.auth.getSession();
+    const payload: Record<string, any> = {
       id: wallet.id,
       name: wallet.name,
       type: wallet.type,
@@ -88,6 +89,9 @@ export const databaseApi = {
       icon: wallet.icon,
       updated_at: wallet.updatedAt || new Date().toISOString(),
     };
+    if (session?.user?.id) {
+      payload.user_id = session.user.id;
+    }
     const { error } = await supabase.from('bt_wallets').upsert(payload);
     if (error) {
       console.warn('Upsert wallet error:', error.message);
@@ -97,7 +101,8 @@ export const databaseApi = {
   },
 
   async upsertRemoteTransaction(tx: Transaction): Promise<boolean> {
-    const payload = {
+    const { data: { session } } = await supabase.auth.getSession();
+    const payload: Record<string, any> = {
       id: tx.id,
       wallet_id: tx.walletId,
       type: tx.type,
@@ -108,6 +113,9 @@ export const databaseApi = {
       notes: tx.notes || null,
       tax: tx.tax || 0,
     };
+    if (session?.user?.id) {
+      payload.user_id = session.user.id;
+    }
     const { error } = await supabase.from('bt_transactions').upsert(payload);
     if (error) {
       console.warn('Upsert transaction error:', error.message);
@@ -126,7 +134,8 @@ export const databaseApi = {
   },
 
   async upsertRemoteLoan(loan: Loan): Promise<boolean> {
-    const payload = {
+    const { data: { session } } = await supabase.auth.getSession();
+    const payload: Record<string, any> = {
       id: loan.id,
       wallet_id: loan.walletId,
       borrower_name: loan.borrowerName,
@@ -138,6 +147,9 @@ export const databaseApi = {
       status: loan.status,
       notes: loan.notes || null,
     };
+    if (session?.user?.id) {
+      payload.user_id = session.user.id;
+    }
     const { error } = await supabase.from('bt_loans').upsert(payload);
     if (error) {
       console.warn('Upsert loan error:', error.message);
@@ -147,7 +159,8 @@ export const databaseApi = {
   },
 
   async upsertRemoteAsset(asset: Asset): Promise<boolean> {
-    const payload = {
+    const { data: { session } } = await supabase.auth.getSession();
+    const payload: Record<string, any> = {
       id: asset.id,
       name: asset.name,
       asset_class: asset.assetClass,
@@ -155,6 +168,9 @@ export const databaseApi = {
       acquisition_date: asset.acquisitionDate || null,
       notes: asset.notes || null,
     };
+    if (session?.user?.id) {
+      payload.user_id = session.user.id;
+    }
     const { error } = await supabase.from('bt_assets').upsert(payload);
     if (error) {
       console.warn('Upsert asset error:', error.message);

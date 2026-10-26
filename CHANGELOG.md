@@ -19,6 +19,12 @@
   - Added dedicated **Save AI Configuration** action button in Section 3 of Profile & Settings with visual confirmation.
   - Fixed stale closure in `onUserAuthenticated` and `onAuthSuccess` to read fresh credentials from device storage.
 
+- **Multi-Tenant Database Row Level Security (RLS)**:
+  - Added `user_id UUID REFERENCES auth.users(id)` across `bt_wallets`, `bt_transactions`, `bt_loans`, `bt_assets`, and `bt_loan_repayments`.
+  - Enabled strict RLS policies on all tables (`auth.uid() = user_id`) to isolate data per authenticated student.
+  - Updated client database layer in `database.ts` to attach active Supabase user ID on all upsert mutations.
+  - Users can now safely share the same application and backend without data contamination or unauthorized access.
+
 - **Borrower Account & Asset Portfolio Deletion**:
   - Added delete actions (`Trash2`) on borrower loan cards in `LoanLedgerScreen`.
   - Added delete actions (`Trash2`) on custom asset holdings in `AssetsScreen`.
