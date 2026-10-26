@@ -195,7 +195,14 @@ export const App: React.FC = () => {
           restDayNecessityCap: localProfile.restDayNecessityCap !== undefined ? localProfile.restDayNecessityCap : 150,
         };
       }
-      // Fetch all remote financial entities for this authenticated user
+      // 1. Process any pending offline mutations first
+      try {
+        await SyncService.processOfflineQueue();
+      } catch (err) {
+        console.warn('Sync queue error:', err);
+      }
+
+      // 2. Fetch remote records
       const [rWallets, rTransactions, rLoans, rAssets] = await Promise.all([
         databaseApi.fetchRemoteWallets(),
         databaseApi.fetchRemoteTransactions(),
@@ -203,21 +210,28 @@ export const App: React.FC = () => {
         databaseApi.fetchRemoteAssets(),
       ]);
 
-      if (rWallets && rWallets.length > 0) {
-        setWallets(rWallets);
-        await storageService.saveWallets(rWallets);
-      }
-      if (rTransactions) {
-        setTransactions(rTransactions);
-        await storageService.saveTransactions(rTransactions);
-      }
-      if (rLoans) {
-        setLoans(rLoans);
-        await storageService.saveLoans(rLoans);
-      }
-      if (rAssets) {
-        setAssets(rAssets);
-        await storageService.saveAssets(rAssets);
+      // 3. New user check: if cloud has no transactions/loans yet, migrate local guest entries to cloud!
+      const isCloudEmpty = (!rTransactions || rTransactions.length === 0) && (!rLoans || rLoans.length === 0);
+      if (isCloudEmpty) {
+        await SyncService.migrateGuestToCloud();
+      } else {
+        // Existing user: hydrate from cloud snapshot
+        if (rWallets && rWallets.length > 0) {
+          setWallets(rWallets);
+          await storageService.saveWallets(rWallets);
+        }
+        if (rTransactions) {
+          setTransactions(rTransactions);
+          await storageService.saveTransactions(rTransactions);
+        }
+        if (rLoans) {
+          setLoans(rLoans);
+          await storageService.saveLoans(rLoans);
+        }
+        if (rAssets) {
+          setAssets(rAssets);
+          await storageService.saveAssets(rAssets);
+        }
       }
 
       setProfile(remote);
