@@ -63,8 +63,8 @@ export const AddLoanModal: React.FC<AddLoanModalProps> = ({
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-sheet">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title">Lend Money</div>
           <button className="icon-circle-btn" onClick={onClose}>

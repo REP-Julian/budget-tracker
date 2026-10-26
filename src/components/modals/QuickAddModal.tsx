@@ -82,8 +82,8 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-sheet">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title">
             {type === 'expense' ? 'Add Expense' : 'Add Income'}
