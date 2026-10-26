@@ -19,6 +19,11 @@
   - Added dedicated **Save AI Configuration** action button in Section 3 of Profile & Settings with visual confirmation.
   - Fixed stale closure in `onUserAuthenticated` and `onAuthSuccess` to read fresh credentials from device storage.
 
+- **Modal Bottom-Sheet Layout & Android WebView Viewport Fit**:
+  - Fixed issue where modal dialogs (Lend Money, Add Asset, Repayments, Quick Add, Search, Notifications, Auth) floated in the top half of the screen with a large empty black space underneath.
+  - Ported all modals to mount directly into `document.body` via React's `createPortal`, decoupling them from internal scroll containers (`PullToRefresh` / `screen-scroll-container`).
+  - Updated sheet overlay styles to `height: 100dvh` and pinned bottom sheets with `max-height: 88dvh` and safe-area padding (`env(safe-area-inset-bottom)`), eliminating empty screen gaps and cramped internal form scrolling.
+
 ### Build
 - Updated universal release Android APK binary (`budget-tracker-release.apk`).
 - Successfully verified and deployed to connected physical device via ADB streamed install.
