@@ -1,12 +1,19 @@
 import { get, set } from 'idb-keyval';
 import { Wallet, Transaction, Loan, Asset, UserProfile } from '../types';
 
+export interface AiConfig {
+  aiBaseUrl?: string;
+  aiApiKey?: string;
+  aiModel?: string;
+}
+
 const STORAGE_KEYS = {
   WALLETS: 'bt_wallets',
   TRANSACTIONS: 'bt_transactions',
   LOANS: 'bt_loans',
   ASSETS: 'bt_assets',
   PROFILE: 'bt_profile',
+  AI_CONFIG: 'bt_ai_config',
 };
 
 async function getItem<T>(key: string, fallbackDefault: T): Promise<T> {
@@ -109,15 +116,47 @@ export const storageService = {
   async saveAssets(assets: Asset[]): Promise<void> {
     await setItem(STORAGE_KEYS.ASSETS, assets);
   },
+  async getAiConfig(): Promise<AiConfig> {
+    return getItem<AiConfig>(STORAGE_KEYS.AI_CONFIG, {});
+  },
+  async saveAiConfig(config: AiConfig): Promise<void> {
+    const existing = await getItem<AiConfig>(STORAGE_KEYS.AI_CONFIG, {});
+    const merged: AiConfig = {
+      aiBaseUrl: config.aiBaseUrl !== undefined ? config.aiBaseUrl : existing.aiBaseUrl,
+      aiApiKey: config.aiApiKey !== undefined ? config.aiApiKey : existing.aiApiKey,
+      aiModel: config.aiModel !== undefined ? config.aiModel : existing.aiModel,
+    };
+    await setItem(STORAGE_KEYS.AI_CONFIG, merged);
+  },
   async getProfile(): Promise<UserProfile> {
-    return getItem<UserProfile>(STORAGE_KEYS.PROFILE, INITIAL_PROFILE);
+    const [p, ai] = await Promise.all([
+      getItem<UserProfile>(STORAGE_KEYS.PROFILE, INITIAL_PROFILE),
+      getItem<AiConfig>(STORAGE_KEYS.AI_CONFIG, {}),
+    ]);
+    return {
+      ...p,
+      aiBaseUrl: p.aiBaseUrl || ai.aiBaseUrl,
+      aiApiKey: p.aiApiKey || ai.aiApiKey,
+      aiModel: p.aiModel || ai.aiModel,
+    };
   },
   async saveProfile(profile: UserProfile): Promise<void> {
     await setItem(STORAGE_KEYS.PROFILE, profile);
+    if (profile.aiBaseUrl !== undefined || profile.aiApiKey !== undefined || profile.aiModel !== undefined) {
+      await this.saveAiConfig({
+        aiBaseUrl: profile.aiBaseUrl,
+        aiApiKey: profile.aiApiKey,
+        aiModel: profile.aiModel,
+      });
+    }
+  },
+  async resetProfile(): Promise<void> {
+    await setItem(STORAGE_KEYS.PROFILE, INITIAL_PROFILE);
   },
   async clearAllData(): Promise<void> {
     try {
       localStorage.clear();
+      await setItem(STORAGE_KEYS.PROFILE, INITIAL_PROFILE);
       await setItem(STORAGE_KEYS.WALLETS, INITIAL_WALLETS);
       await setItem(STORAGE_KEYS.TRANSACTIONS, []);
       await setItem(STORAGE_KEYS.LOANS, []);

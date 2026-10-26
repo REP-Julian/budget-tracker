@@ -65,26 +65,23 @@ export const App: React.FC = () => {
         OfflineQueueManager.getPendingCount(),
       ]);
 
-      setWallets(w);
-      setTransactions(t);
-      setLoans(l);
-      setAssets(a);
-      setProfile(p);
-      if (p.theme && p.theme !== theme) {
-        setTheme(p.theme);
-      }
-      setPendingSyncCount(qCount);
-
       // Check current auth session
       const { data: { session } } = await supabase.auth.getSession();
+      let effectiveProfile = p;
+
       if (session?.user) {
+        if (typeof window !== 'undefined' && window.history?.replaceState) {
+          if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }
         const remoteProfile = await databaseApi.fetchRemoteProfile(session.user.id);
         const meta = session.user.user_metadata || {};
         const googleAvatar = meta.avatar_url || meta.picture;
         const googleName = meta.full_name || meta.name;
 
         if (remoteProfile) {
-          const merged: UserProfile = {
+          effectiveProfile = {
             ...p,
             ...remoteProfile,
             fullName: remoteProfile.fullName || googleName || p.fullName || 'User',
@@ -95,22 +92,47 @@ export const App: React.FC = () => {
             activeScheduleDays: p.activeScheduleDays,
             restDayNecessityCap: p.restDayNecessityCap,
           };
-          setProfile(merged);
-          if (merged.theme && merged.theme !== theme) {
-            setTheme(merged.theme);
-          }
-          await storageService.saveProfile(merged);
+          await storageService.saveProfile(effectiveProfile);
+        }
+      } else {
+        // Not authenticated in Supabase - reset if profile still held an authenticated email
+        if (effectiveProfile.email) {
+          effectiveProfile = {
+            ...INITIAL_PROFILE,
+            theme: effectiveProfile.theme || 'dark',
+            currency: effectiveProfile.currency || 'PHP',
+            aiBaseUrl: p.aiBaseUrl,
+            aiApiKey: p.aiApiKey,
+            aiModel: p.aiModel,
+          };
+          await storageService.saveProfile(effectiveProfile);
         }
       }
+
+      setWallets(w);
+      setTransactions(t);
+      setLoans(l);
+      setAssets(a);
+      setProfile(effectiveProfile);
+      if (effectiveProfile.theme && effectiveProfile.theme !== theme) {
+        setTheme(effectiveProfile.theme);
+      }
+      setPendingSyncCount(qCount);
     }
     loadData();
 
     const onUserAuthenticated = async (user: { id: string; email?: string; user_metadata?: Record<string, any> }) => {
+      if (typeof window !== 'undefined' && window.history?.replaceState) {
+        if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
       let remote = await databaseApi.fetchRemoteProfile(user.id);
       const meta = user.user_metadata || {};
       const googleName = meta.full_name || meta.name || user.email?.split('@')[0] || 'User';
       const googleAvatar = meta.avatar_url || meta.picture;
       const googleUsername = meta.user_name || user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9_]/g, '') || 'user';
+      const localProfile = await storageService.getProfile();
 
       if (!remote) {
         remote = {
@@ -120,15 +142,15 @@ export const App: React.FC = () => {
           email: user.email || '',
           contactNumber: meta.contact_number || '',
           role: meta.role || 'Primary Earner',
-          theme: profile.theme || 'dark',
-          currency: profile.currency || 'PHP',
-          dailyNecessityCap: profile.dailyNecessityCap || 500,
-          activeScheduleDays: profile.activeScheduleDays || [1, 2, 4, 5, 6],
-          restDayNecessityCap: profile.restDayNecessityCap !== undefined ? profile.restDayNecessityCap : 150,
-          avatarUrl: googleAvatar || profile.avatarUrl || undefined,
-          aiBaseUrl: profile.aiBaseUrl,
-          aiApiKey: profile.aiApiKey,
-          aiModel: profile.aiModel,
+          theme: localProfile.theme || 'dark',
+          currency: localProfile.currency || 'PHP',
+          dailyNecessityCap: localProfile.dailyNecessityCap || 500,
+          activeScheduleDays: localProfile.activeScheduleDays || [1, 2, 4, 5, 6],
+          restDayNecessityCap: localProfile.restDayNecessityCap !== undefined ? localProfile.restDayNecessityCap : 150,
+          avatarUrl: googleAvatar || localProfile.avatarUrl || undefined,
+          aiBaseUrl: localProfile.aiBaseUrl,
+          aiApiKey: localProfile.aiApiKey,
+          aiModel: localProfile.aiModel,
         };
         await databaseApi.upsertRemoteProfile(remote);
       } else {
@@ -137,12 +159,12 @@ export const App: React.FC = () => {
           ...remote,
           fullName: remote.fullName || googleName,
           email: remote.email || user.email || '',
-          avatarUrl: remote.avatarUrl || googleAvatar || profile.avatarUrl || undefined,
-          aiBaseUrl: profile.aiBaseUrl,
-          aiApiKey: profile.aiApiKey,
-          aiModel: profile.aiModel,
-          activeScheduleDays: profile.activeScheduleDays || [1, 2, 4, 5, 6],
-          restDayNecessityCap: profile.restDayNecessityCap !== undefined ? profile.restDayNecessityCap : 150,
+          avatarUrl: remote.avatarUrl || googleAvatar || localProfile.avatarUrl || undefined,
+          aiBaseUrl: localProfile.aiBaseUrl,
+          aiApiKey: localProfile.aiApiKey,
+          aiModel: localProfile.aiModel,
+          activeScheduleDays: localProfile.activeScheduleDays || [1, 2, 4, 5, 6],
+          restDayNecessityCap: localProfile.restDayNecessityCap !== undefined ? localProfile.restDayNecessityCap : 150,
         };
       }
       setProfile(remote);
@@ -155,6 +177,9 @@ export const App: React.FC = () => {
       if ((event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') && session?.user) {
         await onUserAuthenticated(session.user);
       } else if (event === 'SIGNED_OUT') {
+        if (typeof window !== 'undefined' && window.history?.replaceState) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
         // Clear Supabase session keys from localStorage
         try {
           for (let i = localStorage.length - 1; i >= 0; i--) {
@@ -552,9 +577,12 @@ export const App: React.FC = () => {
                     onOpenAuth={() => setIsAuthModalOpen(true)}
                     onSignOut={async () => {
                       try {
-                        await supabase.auth.signOut();
+                        await supabase.auth.signOut({ scope: 'local' });
                       } catch (err) {
                         console.warn('SignOut error:', err);
+                      }
+                      if (typeof window !== 'undefined' && window.history?.replaceState) {
+                        window.history.replaceState({}, document.title, window.location.pathname);
                       }
                       // Clear Supabase local storage session tokens explicitly
                       try {
@@ -621,8 +649,15 @@ export const App: React.FC = () => {
                 isOpen={isAuthModalOpen}
                 onClose={() => setIsAuthModalOpen(false)}
                 onAuthSuccess={async (newProfile) => {
-                  setProfile(newProfile);
-                  await storageService.saveProfile(newProfile);
+                  const localProfile = await storageService.getProfile();
+                  const merged = {
+                    ...newProfile,
+                    aiBaseUrl: localProfile.aiBaseUrl,
+                    aiApiKey: localProfile.aiApiKey,
+                    aiModel: localProfile.aiModel,
+                  };
+                  setProfile(merged);
+                  await storageService.saveProfile(merged);
                 }}
               />
 

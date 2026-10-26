@@ -19,6 +19,7 @@ import {
   Server,
   RefreshCw,
   Sparkles,
+  Save,
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
@@ -64,6 +65,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
   const [isDetectingModels, setIsDetectingModels] = useState(false);
   const [detectError, setDetectError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [isAiSaved, setIsAiSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync component state if profile prop changes (e.g. after sign in or sign out)
@@ -114,6 +116,18 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
     );
   };
 
+  const handleSaveAi = (overrideModel?: string) => {
+    const updated: UserProfile = {
+      ...profile,
+      aiBaseUrl: aiBaseUrl.trim() || undefined,
+      aiApiKey: aiApiKey.trim() || undefined,
+      aiModel: (overrideModel !== undefined ? overrideModel : aiModel).trim() || undefined,
+    };
+    onUpdateProfile(updated);
+    setIsAiSaved(true);
+    setTimeout(() => setIsAiSaved(false), 2500);
+  };
+
   const handleDetectModels = async () => {
     if (!aiBaseUrl.trim()) {
       setDetectError('Please provide a Base URL first (e.g. https://openrouter.ai/api/v1).');
@@ -124,19 +138,43 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
     try {
       const list = await AiClientService.fetchAvailableModels(aiBaseUrl, aiApiKey);
       setDetectedModels(list);
+      let selectedModel = aiModel;
       if (list.length > 0) {
-        // Auto select first (first model is free if any free model exists)
-        if (!aiModel || !list.some((m) => m.id === aiModel)) {
-          setAiModel(list[0].id);
+        if (!selectedModel || !list.some((m) => m.id === selectedModel)) {
+          selectedModel = list[0].id;
+          setAiModel(selectedModel);
         }
       } else {
         setDetectError('No models returned from provider.');
       }
+      handleSaveAi(selectedModel);
     } catch (err: any) {
       setDetectError(err.message || 'Failed to detect models.');
     } finally {
       setIsDetectingModels(false);
     }
+  };
+
+  const handleBack = () => {
+    const updated: UserProfile = {
+      ...profile,
+      username,
+      fullName,
+      email,
+      contactNumber,
+      role,
+      theme,
+      currency,
+      dailyNecessityCap: parseFloat(dailyCap) || 500,
+      activeScheduleDays: activeDays,
+      restDayNecessityCap: parseFloat(restCap) || 150,
+      avatarUrl,
+      aiBaseUrl: aiBaseUrl.trim() || undefined,
+      aiApiKey: aiApiKey.trim() || undefined,
+      aiModel: aiModel.trim() || undefined,
+    };
+    onUpdateProfile(updated);
+    onBack();
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -176,7 +214,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
     <div className="profile-container">
       {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button className="icon-circle-btn" onClick={onBack} title="Back">
+        <button className="icon-circle-btn" onClick={handleBack} title="Back">
           <ArrowLeft size={16} />
         </button>
         <div style={{ fontSize: '15px', fontWeight: 800 }}>Profile & Settings</div>
@@ -584,6 +622,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
               placeholder="e.g. https://openrouter.ai/api/v1 or https://api.openai.com/v1"
               value={aiBaseUrl}
               onChange={(e) => setAiBaseUrl(e.target.value)}
+              onBlur={() => handleSaveAi()}
             />
           </div>
 
@@ -604,6 +643,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
               placeholder="sk-..."
               value={aiApiKey}
               onChange={(e) => setAiApiKey(e.target.value)}
+              onBlur={() => handleSaveAi()}
             />
           </div>
 
@@ -646,7 +686,11 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
                 className="settings-select"
                 style={{ width: '100%', fontSize: '13px' }}
                 value={aiModel}
-                onChange={(e) => setAiModel(e.target.value)}
+                onChange={(e) => {
+                  setAiModel(e.target.value);
+                  handleSaveAi(e.target.value);
+                }}
+                onBlur={() => handleSaveAi()}
               >
                 <option value="">-- Select auto-detected model --</option>
                 {detectedModels.map((m) => (
@@ -663,6 +707,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
                 placeholder="e.g. meta-llama/llama-3.2-3b-instruct:free or gpt-4o-mini"
                 value={aiModel}
                 onChange={(e) => setAiModel(e.target.value)}
+                onBlur={() => handleSaveAi()}
               />
             )}
 
@@ -676,6 +721,37 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
                 <Sparkles size={12} /> Detected {detectedModels.length} models. Free models placed first.
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={() => handleSaveAi()}
+              style={{
+                width: '100%',
+                padding: '9px 14px',
+                background: isAiSaved ? 'rgba(34, 197, 94, 0.2)' : 'var(--neon-yellow)',
+                color: isAiSaved ? 'var(--accent-green)' : 'var(--neon-yellow-text)',
+                border: isAiSaved ? '1px solid var(--accent-green)' : 'none',
+                borderRadius: 'var(--radius-md, 10px)',
+                fontWeight: 800,
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                marginTop: '10px',
+              }}
+            >
+              {isAiSaved ? (
+                <>
+                  <Check size={14} /> AI Settings Saved!
+                </>
+              ) : (
+                <>
+                  <Save size={14} /> Save AI Configuration
+                </>
+              )}
+            </button>
           </div>
         </div>
 
