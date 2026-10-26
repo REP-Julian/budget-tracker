@@ -1,4 +1,4 @@
-import { Wallet, Transaction, Loan, Asset, LoanRepayment } from '../types';
+import { Wallet, Transaction, Loan, Asset, LoanRepayment, UserProfile } from '../types';
 
 export interface CategorySummary {
   category: string;
@@ -6,6 +6,21 @@ export interface CategorySummary {
   percentage: number;
   count: number;
   color: string;
+}
+
+export interface DailySavingsRecord {
+  date: string;
+  isWorkDay: boolean;
+  allowance: number;
+  spent: number;
+  saved: number;
+}
+
+export interface SavingsHistoryResult {
+  todaySaved: number;
+  weekSaved: number;
+  monthSaved: number;
+  records: DailySavingsRecord[];
 }
 
 export const CATEGORY_COLORS: Record<string, string> = {
@@ -20,6 +35,63 @@ export const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export class FinanceEngine {
+  /**
+   * Sorts wallets in a strict deterministic order:
+   * 1. 'w-cash-01' or type === 'cash' first (index 0)
+   * 2. 'w-savings-02' or type === 'savings' second (index 1)
+   * 3. Any other wallets sorted deterministically by name or id
+   */
+  public static sortWallets(wallets: Wallet[]): Wallet[] {
+    return [...wallets].sort((a, b) => {
+      const isCashA = a.id === 'w-cash-01' || a.type === 'cash';
+      const isCashB = b.id === 'w-cash-01' || b.type === 'cash';
+      if (isCashA && !isCashB) return -1;
+      if (!isCashA && isCashB) return 1;
+      if (isCashA && isCashB) {
+        if (a.id === 'w-cash-01' && b.id !== 'w-cash-01') return -1;
+        if (a.id !== 'w-cash-01' && b.id === 'w-cash-01') return 1;
+        return a.id.localeCompare(b.id);
+      }
+
+      const isSavingsA = a.id === 'w-savings-02' || a.type === 'savings';
+      const isSavingsB = b.id === 'w-savings-02' || b.type === 'savings';
+      if (isSavingsA && !isSavingsB) return -1;
+      if (!isSavingsA && isSavingsB) return 1;
+      if (isSavingsA && isSavingsB) {
+        if (a.id === 'w-savings-02' && b.id !== 'w-savings-02') return -1;
+        if (a.id !== 'w-savings-02' && b.id === 'w-savings-02') return 1;
+        return a.id.localeCompare(b.id);
+      }
+
+      return a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
+    });
+  }
+
+  /**
+   * Formats ISO date or datetime string to a human-readable format:
+   * e.g. "Oct 26, 2026 • 9:15 PM"
+   */
+  public static formatTransactionDateTime(dateStr: string): string {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const datePart = d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      const timePart = d.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+      return `${datePart} • ${timePart}`;
+    } catch {
+      return dateStr;
+    }
+  }
+
   /**
    * Sums all liquid wallet balances
    */
@@ -95,8 +167,24 @@ export class FinanceEngine {
     let spentToday = 0;
 
     for (const tx of transactions) {
-      if (tx.type === 'expense' && tx.isNecessity && tx.date.startsWith(dateStr)) {
-        spentToday += tx.amount;
+      if (tx.type === 'expense' && tx.isNecessity) {
+        let matches = tx.date.startsWith(dateStr);
+        if (!matches) {
+          try {
+            const d = new Date(tx.date);
+            if (!isNaN(d.getTime())) {
+              const y = d.getFullYear();
+              const m = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              matches = `${y}-${m}-${day}` === dateStr;
+            }
+          } catch {
+            // ignore
+          }
+        }
+        if (matches) {
+          spentToday += tx.amount;
+        }
       }
     }
 
@@ -117,6 +205,84 @@ export class FinanceEngine {
       isOverBudget: spentToday > effectiveCap,
       isWorkDay,
       dayOfWeek,
+    };
+  }
+
+  /**
+   * Calculates savings history based on the daily necessity schedule:
+   * For each day in the past window (today, last 7 days / week, or past 30 days / month):
+   * - Active work/school day cap vs rest day cap
+   * - Saved for day = Math.max(0, allowance - spent)
+   * Returns todaySaved, weekSaved (past 7 days), monthSaved (past 30 days)
+   */
+  public static calculateSavingsHistory(
+    transactions: Transaction[],
+    profile: UserProfile,
+    daysCount: number = 30
+  ): SavingsHistoryResult {
+    const activeDays = profile.activeScheduleDays && profile.activeScheduleDays.length > 0
+      ? profile.activeScheduleDays
+      : [1, 2, 4, 5, 6];
+    const workCap = profile.dailyNecessityCap || 500;
+    const restCap = profile.restDayNecessityCap !== undefined ? profile.restDayNecessityCap : 150;
+
+    const records: DailySavingsRecord[] = [];
+    const now = new Date();
+
+    for (let i = 0; i < daysCount; i++) {
+      const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const year = targetDate.getFullYear();
+      const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+      const day = String(targetDate.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+
+      const dayOfWeek = targetDate.getDay();
+      const isWorkDay = activeDays.includes(dayOfWeek);
+      const allowance = isWorkDay ? workCap : restCap;
+
+      let spent = 0;
+      for (const tx of transactions) {
+        if (tx.type === 'expense' && tx.isNecessity) {
+          let matches = tx.date.startsWith(dateStr);
+          if (!matches) {
+            try {
+              const txDate = new Date(tx.date);
+              if (!isNaN(txDate.getTime())) {
+                const txYear = txDate.getFullYear();
+                const txMonth = String(txDate.getMonth() + 1).padStart(2, '0');
+                const txDay = String(txDate.getDate()).padStart(2, '0');
+                matches = `${txYear}-${txMonth}-${txDay}` === dateStr;
+              }
+            } catch {
+              // ignore
+            }
+          }
+          if (matches) {
+            spent += tx.amount;
+          }
+        }
+      }
+
+      const saved = Math.max(0, allowance - spent);
+
+      records.push({
+        date: dateStr,
+        isWorkDay,
+        allowance,
+        spent,
+        saved,
+      });
+    }
+
+    const todaySaved = records.length > 0 ? records[0].saved : 0;
+    const weekSaved = records.slice(0, 7).reduce((acc, r) => acc + r.saved, 0);
+    const monthSaved = records.slice(0, 30).reduce((acc, r) => acc + r.saved, 0);
+
+    return {
+      todaySaved,
+      weekSaved,
+      monthSaved,
+      records,
     };
   }
 

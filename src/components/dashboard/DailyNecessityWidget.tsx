@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, PiggyBank } from 'lucide-react';
 
 interface DailyNecessityWidgetProps {
   spentToday: number;
@@ -9,6 +9,11 @@ interface DailyNecessityWidgetProps {
   isOverBudget: boolean;
   isWorkDay?: boolean;
   currencySymbol?: string;
+  savings?: {
+    todaySaved: number;
+    weekSaved: number;
+    monthSaved: number;
+  };
 }
 
 export const DailyNecessityWidget: React.FC<DailyNecessityWidgetProps> = ({
@@ -19,6 +24,7 @@ export const DailyNecessityWidget: React.FC<DailyNecessityWidgetProps> = ({
   isOverBudget,
   isWorkDay = true,
   currencySymbol = '$',
+  savings,
 }) => {
   return (
     <div className="necessity-widget">
@@ -84,6 +90,146 @@ export const DailyNecessityWidget: React.FC<DailyNecessityWidgetProps> = ({
           )}
         </span>
       </div>
+
+      {/* Savings Tracker Breakdown */}
+      {savings && (
+        <div
+          style={{
+            marginTop: '12px',
+            paddingTop: '10px',
+            borderTop: '1px solid var(--card-border)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <PiggyBank size={13} color="var(--accent-green)" />
+              Daily Allowance Savings
+            </span>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+              Discipline Tracker
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '6px',
+            }}
+          >
+            <div
+              style={{
+                background: 'var(--card-elevated, rgba(255, 255, 255, 0.03))',
+                borderRadius: 'var(--radius-md)',
+                padding: '7px 4px',
+                textAlign: 'center',
+                border: '1px solid var(--card-border)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.4px',
+                }}
+              >
+                Today
+              </div>
+              <div
+                style={{
+                  fontSize: '13px',
+                  fontWeight: 800,
+                  color: 'var(--accent-green)',
+                  marginTop: '2px',
+                }}
+              >
+                {currencySymbol}
+                {savings.todaySaved.toFixed(0)}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: 'var(--card-elevated, rgba(255, 255, 255, 0.03))',
+                borderRadius: 'var(--radius-md)',
+                padding: '7px 4px',
+                textAlign: 'center',
+                border: '1px solid var(--card-border)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.4px',
+                }}
+              >
+                Past 7 Days
+              </div>
+              <div
+                style={{
+                  fontSize: '13px',
+                  fontWeight: 800,
+                  color: 'var(--neon-yellow)',
+                  marginTop: '2px',
+                }}
+              >
+                {currencySymbol}
+                {savings.weekSaved.toFixed(0)}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: 'var(--card-elevated, rgba(255, 255, 255, 0.03))',
+                borderRadius: 'var(--radius-md)',
+                padding: '7px 4px',
+                textAlign: 'center',
+                border: '1px solid var(--card-border)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.4px',
+                }}
+              >
+                Past 30 Days
+              </div>
+              <div
+                style={{
+                  fontSize: '13px',
+                  fontWeight: 800,
+                  color: '#38BDF8',
+                  marginTop: '2px',
+                }}
+              >
+                {currencySymbol}
+                {savings.monthSaved.toFixed(0)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

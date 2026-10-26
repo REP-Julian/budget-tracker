@@ -19,7 +19,7 @@ export interface Transaction {
   amount: number;
   category: string;
   isNecessity: boolean; // Needs vs Wants
-  date: string;
+  date: string; // ISO string or timestamp format with date and time (e.g. '2026-10-26T21:15:00.000Z' or 'YYYY-MM-DDTHH:mm');
   notes?: string;
   tax: number;
   syncStatus: 'synced' | 'pending_insert' | 'pending_update' | 'pending_delete';
@@ -29,7 +29,7 @@ export interface LoanRepayment {
   id: string;
   loanId: string;
   amount: number;
-  date: string;
+  date: string; // ISO string or timestamp format with date and time (e.g. '2026-10-26T21:15:00.000Z' or 'YYYY-MM-DDTHH:mm');
   destinationWalletId: string;
   notes?: string;
 }

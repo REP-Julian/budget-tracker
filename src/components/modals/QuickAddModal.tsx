@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import React, { useState, useEffect } from 'react';
-import { X, Check } from 'lucide-react';
+import { X, Check, Calendar } from 'lucide-react';
 import { Wallet, TransactionType } from '../../types';
 
 interface QuickAddModalProps {
@@ -15,6 +15,7 @@ interface QuickAddModalProps {
     amount: number;
     category: string;
     isNecessity: boolean;
+    date?: string;
     notes?: string;
   }) => void;
 }
@@ -31,6 +32,16 @@ const CATEGORIES = [
   'Other',
 ];
 
+const getCurrentLocalDateTime = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 export const QuickAddModal: React.FC<QuickAddModalProps> = ({
   isOpen,
   initialType = 'expense',
@@ -43,6 +54,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState(initialType === 'income' ? 'Salary' : 'Shop');
   const [walletId, setWalletId] = useState(wallets[0]?.id || '');
+  const [date, setDate] = useState<string>(getCurrentLocalDateTime);
   const [isNecessity, setIsNecessity] = useState(true);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
@@ -53,6 +65,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
       setType(initialType);
       setCategory(initialType === 'income' ? 'Salary' : 'Shop');
       setAmount('');
+      setDate(getCurrentLocalDateTime());
       setNotes('');
       setError('');
       if (wallets.length > 0 && !walletId) {
@@ -77,6 +90,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
       amount: val,
       category,
       isNecessity: type === 'expense' ? isNecessity : false,
+      date: date || getCurrentLocalDateTime(),
       notes: notes || undefined,
     });
     onClose();
@@ -191,6 +205,19 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="input-group">
+            <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Calendar size={13} /> Date & Time
+            </label>
+            <input
+              type="datetime-local"
+              className="input-field"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
           </div>
 
           {type === 'expense' && (

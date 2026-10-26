@@ -29,7 +29,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onLendMoney,
   onDeleteTransaction,
 }) => {
-  const totalBalance = FinanceEngine.calculateTotalLiquidBalance(wallets);
+  const sortedWallets = FinanceEngine.sortWallets(wallets);
+  const totalBalance = FinanceEngine.calculateTotalLiquidBalance(sortedWallets);
   const { income, expense } = FinanceEngine.calculateMonthlyIncomeAndExpense(transactions);
   const dailyNecessity = FinanceEngine.calculateDailyNecessitySpend(
     transactions,
@@ -38,6 +39,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     profile.activeScheduleDays || [1, 2, 4, 5, 6],
     profile.restDayNecessityCap !== undefined ? profile.restDayNecessityCap : 150
   );
+  const savings = FinanceEngine.calculateSavingsHistory(transactions, profile, 30);
 
   return (
     <div className="dashboard-container">
@@ -48,7 +50,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         currencySymbol={currencySymbol}
       />
 
-      <WalletCarousel wallets={wallets} currencySymbol={currencySymbol} />
+      <WalletCarousel wallets={sortedWallets} currencySymbol={currencySymbol} />
 
       <DailyNecessityWidget
         spentToday={dailyNecessity.spentToday}
@@ -58,6 +60,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         isOverBudget={dailyNecessity.isOverBudget}
         isWorkDay={dailyNecessity.isWorkDay}
         currencySymbol={currencySymbol}
+        savings={savings}
       />
 
       <QuickActions
@@ -68,7 +71,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
       <TransactionFeed
         transactions={transactions.slice(0, 6)}
-        wallets={wallets}
+        wallets={sortedWallets}
         currencySymbol={currencySymbol}
         onDeleteTransaction={onDeleteTransaction}
       />

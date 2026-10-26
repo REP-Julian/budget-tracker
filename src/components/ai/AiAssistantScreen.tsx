@@ -28,6 +28,7 @@ interface AiAssistantScreenProps {
     amount: number;
     category: string;
     isNecessity: boolean;
+    date?: string;
     notes?: string;
   }) => void;
 }
@@ -36,7 +37,7 @@ export const AiAssistantScreen: React.FC<AiAssistantScreenProps> = ({
   wallets,
   transactions,
   loans,
-  assets: _assets,
+  assets,
   profile,
   currencySymbol = '₱',
   messages,
@@ -81,6 +82,7 @@ export const AiAssistantScreen: React.FC<AiAssistantScreenProps> = ({
           wallets,
           transactions,
           loans,
+          assets,
           currencySymbol,
         },
         (chunk) => {

@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import React, { useState } from 'react';
 import { Search, X, ArrowUpRight, ArrowDownLeft, HandCoins, Calendar, Trash2 } from 'lucide-react';
 import { Transaction, Loan } from '../../types';
+import { FinanceEngine } from '../../services/financeEngine';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -150,7 +151,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     <div>
                       <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{tx.category}</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {tx.date.split('T')[0]} {tx.notes ? `• ${tx.notes}` : ''}
+                        {FinanceEngine.formatTransactionDateTime(tx.date)} {tx.notes ? `• ${tx.notes}` : ''}
                       </div>
                     </div>
                   </div>

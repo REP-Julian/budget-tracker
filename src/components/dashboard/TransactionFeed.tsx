@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ShoppingBag, Car, Home, BookOpen, Coffee, CircleDot, ReceiptText, Trash2 } from 'lucide-react';
 import { Transaction, Wallet } from '../../types';
+import { FinanceEngine } from '../../services/financeEngine';
 
 interface TransactionFeedProps {
   transactions: Transaction[];
@@ -74,8 +75,8 @@ export const TransactionFeed: React.FC<TransactionFeedProps> = ({
               <div>
                 <div className="transaction-name">{tx.notes || tx.category}</div>
                 <div className="transaction-sub">
-                  {tx.isNecessity ? 'Necessity • ' : 'Discretionary • '}
-                  {getWalletName(tx.walletId)}
+                  {tx.notes ? `${tx.category} • ` : ''}{tx.isNecessity ? 'Necessity • ' : 'Discretionary • '}
+                  {getWalletName(tx.walletId)} • {FinanceEngine.formatTransactionDateTime(tx.date)}
                 </div>
               </div>
             </div>

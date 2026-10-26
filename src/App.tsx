@@ -29,7 +29,7 @@ import './styles/navigation.css';
 export const App: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const [currentTab, setCurrentTab] = useState<ScreenTab>('home');
-  const [wallets, setWallets] = useState<Wallet[]>(INITIAL_WALLETS);
+  const [wallets, setWallets] = useState<Wallet[]>(() => FinanceEngine.sortWallets(INITIAL_WALLETS));
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
   const [loans, setLoans] = useState<Loan[]>(INITIAL_LOANS);
   const [assets, setAssets] = useState<Asset[]>(INITIAL_ASSETS);
@@ -107,8 +107,8 @@ export const App: React.FC = () => {
         }
 
         if (rWallets && rWallets.length > 0) {
-          activeWallets = rWallets;
-          await storageService.saveWallets(rWallets);
+          activeWallets = FinanceEngine.sortWallets(rWallets);
+          await storageService.saveWallets(activeWallets);
         }
         if (rTransactions) {
           activeTransactions = rTransactions;
@@ -137,7 +137,7 @@ export const App: React.FC = () => {
         }
       }
 
-      setWallets(activeWallets);
+      setWallets(FinanceEngine.sortWallets(activeWallets));
       setTransactions(activeTransactions);
       setLoans(activeLoans);
       setAssets(activeAssets);
@@ -217,8 +217,9 @@ export const App: React.FC = () => {
       } else {
         // Existing user: hydrate from cloud snapshot
         if (rWallets && rWallets.length > 0) {
-          setWallets(rWallets);
-          await storageService.saveWallets(rWallets);
+          const sorted = FinanceEngine.sortWallets(rWallets);
+          setWallets(sorted);
+          await storageService.saveWallets(sorted);
         }
         if (rTransactions) {
           setTransactions(rTransactions);
@@ -260,7 +261,7 @@ export const App: React.FC = () => {
         }
         // Clear all state and device storage so previous user's data does not linger
         setProfile(INITIAL_PROFILE);
-        setWallets(INITIAL_WALLETS);
+        setWallets(FinanceEngine.sortWallets(INITIAL_WALLETS));
         setTransactions([]);
         setLoans([]);
         setAssets([]);
@@ -352,8 +353,10 @@ export const App: React.FC = () => {
     amount: number;
     category: string;
     isNecessity: boolean;
+    date?: string;
     notes?: string;
   }) => {
+    const txDate = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
     const newTx: Transaction = {
       id: crypto.randomUUID ? crypto.randomUUID() : `tx-${Date.now()}`,
       walletId: data.walletId,
@@ -361,14 +364,14 @@ export const App: React.FC = () => {
       amount: data.amount,
       category: data.category,
       isNecessity: data.isNecessity,
-      date: new Date().toISOString(),
+      date: txDate,
       notes: data.notes,
       tax: 0,
       syncStatus: 'pending_insert',
     };
 
     // Update wallet balance
-    const updatedWallets = wallets.map((w) => {
+    const updatedWallets = FinanceEngine.sortWallets(wallets.map((w) => {
       if (w.id === data.walletId) {
         const delta = data.type === 'income' ? data.amount : -data.amount;
         return {
@@ -378,7 +381,7 @@ export const App: React.FC = () => {
         };
       }
       return w;
-    });
+    }));
 
     // Deduplicate transaction insertion
     const updatedTxs = [newTx, ...transactions.filter((t) => t.id !== newTx.id)];
@@ -404,7 +407,7 @@ export const App: React.FC = () => {
     if (!targetTx) return;
 
     // Reverse wallet balance change
-    const updatedWallets = wallets.map((w) => {
+    const updatedWallets = FinanceEngine.sortWallets(wallets.map((w) => {
       if (w.id === targetTx.walletId) {
         // If it was expense, money comes back (+)
         // If it was income, money is removed (-)
@@ -416,7 +419,7 @@ export const App: React.FC = () => {
         };
       }
       return w;
-    });
+    }));
 
     const updatedTxs = transactions.filter((t) => t.id !== id);
 
@@ -457,10 +460,10 @@ export const App: React.FC = () => {
     // Deduplicate loan insertion
     const updatedLoans = [newLoan, ...loans.filter((l) => l.id !== newLoan.id)];
 
-    setWallets(updatedWallets);
+    setWallets(FinanceEngine.sortWallets(updatedWallets));
     setLoans(updatedLoans);
 
-    await storageService.saveWallets(updatedWallets);
+    await storageService.saveWallets(FinanceEngine.sortWallets(updatedWallets));
     await storageService.saveLoans(updatedLoans);
     await OfflineQueueManager.enqueue('loans', 'insert', newLoan);
     const changedWallet = updatedWallets.find(w => w.id === data.sourceWalletId);
@@ -489,10 +492,10 @@ export const App: React.FC = () => {
 
     const updatedLoans = loans.map((l) => (l.id === updatedLoan.id ? updatedLoan : l));
 
-    setWallets(updatedWallets);
+    setWallets(FinanceEngine.sortWallets(updatedWallets));
     setLoans(updatedLoans);
 
-    await storageService.saveWallets(updatedWallets);
+    await storageService.saveWallets(FinanceEngine.sortWallets(updatedWallets));
     await storageService.saveLoans(updatedLoans);
     await OfflineQueueManager.enqueue('loans', 'update', updatedLoan);
     const changedWallet = updatedWallets.find(w => w.id === destinationWalletId);
@@ -617,7 +620,7 @@ export const App: React.FC = () => {
             const dedupLoans = Array.from(new Map(l.map((item) => [item.id, item])).values());
             const dedupAssets = Array.from(new Map(a.map((item) => [item.id, item])).values());
 
-            setWallets(dedupWallets);
+            setWallets(FinanceEngine.sortWallets(dedupWallets));
             setTransactions(dedupTxs);
             setLoans(dedupLoans);
             setAssets(dedupAssets);
@@ -718,7 +721,7 @@ export const App: React.FC = () => {
                         // ignore
                       }
                       setProfile(INITIAL_PROFILE);
-                      setWallets(INITIAL_WALLETS);
+                      setWallets(FinanceEngine.sortWallets(INITIAL_WALLETS));
                       setTransactions([]);
                       setLoans([]);
                       setAssets([]);
@@ -729,7 +732,7 @@ export const App: React.FC = () => {
                     }}
                     onResetData={async () => {
                       await storageService.clearAllData();
-                      setWallets(INITIAL_WALLETS);
+                      setWallets(FinanceEngine.sortWallets(INITIAL_WALLETS));
                       setTransactions([]);
                       setLoans([]);
                       setAssets([]);

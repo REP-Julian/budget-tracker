@@ -1,6 +1,7 @@
 import React from 'react';
 import { Banknote, Vault, ShieldAlert, Wallet as WalletIcon } from 'lucide-react';
 import { Wallet } from '../../types';
+import { FinanceEngine } from '../../services/financeEngine';
 
 interface WalletCarouselProps {
   wallets: Wallet[];
@@ -13,6 +14,8 @@ export const WalletCarousel: React.FC<WalletCarouselProps> = ({
   onSelectWallet,
   currencySymbol = '$',
 }) => {
+  const sortedWallets = FinanceEngine.sortWallets(wallets);
+
   const getWalletIcon = (type: Wallet['type']) => {
     switch (type) {
       case 'cash':
@@ -29,7 +32,7 @@ export const WalletCarousel: React.FC<WalletCarouselProps> = ({
 
   return (
     <div className="wallets-carousel">
-      {wallets.map((wallet) => (
+      {sortedWallets.map((wallet) => (
         <div
           key={wallet.id}
           className="wallet-tile"
