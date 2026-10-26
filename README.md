@@ -11,35 +11,8 @@
 **A high-performance personal finance manager and AI financial advisor built with React 19, Tauri 2.0, and Supabase.**  
 *Strict accounting rules, offline-first IndexedDB storage, real-time cloud synchronization, and custom OpenAI/Groq/Ollama LLM integration.*
 
-[Architecture](#-system-architecture) • [App Preview](#-app-preview) • [Core Features](#-core-features) • [Data Flow](#-data-flow-charts) • [AI Assistant](#-ai-copilot-setup) • [Installation](#-getting-started)
+[Architecture](#-system-architecture) • [Core Features](#-core-features) • [Data Flow](#-data-flow-charts) • [AI Assistant](#-ai-copilot-setup) • [Installation](#-getting-started)
 
-</div>
-
----
-
-## 📱 App Preview
-
-<div align="center">
-  <table>
-    <tr>
-      <td align="center" width="25%">
-        <b>Home Dashboard</b><br/><br/>
-        <img src="docs/screenshots/dashboard.png" width="220" alt="Home Dashboard" style="border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.4);" />
-      </td>
-      <td align="center" width="25%">
-        <b>Nova AI Financial Copilot</b><br/><br/>
-        <img src="docs/screenshots/ai_assistant.png" width="220" alt="AI Copilot" style="border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.4);" />
-      </td>
-      <td align="center" width="25%">
-        <b>Money Lent Ledger</b><br/><br/>
-        <img src="docs/screenshots/money_lent.png" width="220" alt="Money Lent Ledger" style="border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.4);" />
-      </td>
-      <td align="center" width="25%">
-        <b>Profile & AI Settings</b><br/><br/>
-        <img src="docs/screenshots/settings.png" width="220" alt="Profile Settings" style="border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.4);" />
-      </td>
-    </tr>
-  </table>
 </div>
 
 ---
