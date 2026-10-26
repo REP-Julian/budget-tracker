@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
 import { Loan, Wallet } from '../../types';
@@ -43,7 +44,7 @@ export const RepaymentModal: React.FC<RepaymentModalProps> = ({
     onClose();
   };
 
-  return (
+  const modalContent = (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -112,4 +113,6 @@ export const RepaymentModal: React.FC<RepaymentModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

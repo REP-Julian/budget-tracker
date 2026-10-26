@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useState, useEffect } from 'react';
 import { X, Check } from 'lucide-react';
 import { Wallet, TransactionType } from '../../types';
@@ -81,7 +82,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
     onClose();
   };
 
-  return (
+  const modalContent = (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -225,4 +226,6 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

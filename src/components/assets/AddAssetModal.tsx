@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
 import { AssetClass } from '../../types';
@@ -48,7 +49,7 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
     onClose();
   };
 
-  return (
+  const modalContent = (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -121,4 +122,6 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

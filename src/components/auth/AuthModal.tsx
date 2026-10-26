@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { databaseApi } from '../../lib/database';
@@ -219,7 +220,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
     }
   };
 
-  return (
+  const modalContent = (
     <div className="auth-overlay">
       <div className="auth-modal-sheet">
         {/* Header Tabs */}
@@ -493,4 +494,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

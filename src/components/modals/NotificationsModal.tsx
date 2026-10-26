@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React from 'react';
 import { X, Bell, AlertTriangle, Sparkles, HandCoins, CheckCircle2 } from 'lucide-react';
 import { Transaction, Loan, UserProfile } from '../../types';
@@ -81,7 +82,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
     timestamp: 'System',
   });
 
-  return (
+  const modalContent = (
     <div className="auth-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
       <div
         className="auth-modal-sheet"
@@ -177,4 +178,6 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

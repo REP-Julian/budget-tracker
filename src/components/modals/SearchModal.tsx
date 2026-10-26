@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useState } from 'react';
 import { Search, X, ArrowUpRight, ArrowDownLeft, HandCoins, Calendar, Trash2 } from 'lucide-react';
 import { Transaction, Loan } from '../../types';
@@ -45,7 +46,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     );
   });
 
-  return (
+  const modalContent = (
     <div className="auth-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
       <div
         className="auth-modal-sheet"
@@ -285,4 +286,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };
