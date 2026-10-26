@@ -187,7 +187,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
             >
               {wallets.map((w) => (
                 <option key={w.id} value={w.id}>
-                  {w.name} (${w.balance.toFixed(2)})
+                  {w.name} ({currencySymbol}{w.balance.toFixed(2)})
                 </option>
               ))}
             </select>

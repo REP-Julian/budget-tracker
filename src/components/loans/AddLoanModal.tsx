@@ -33,6 +33,17 @@ export const AddLoanModal: React.FC<AddLoanModalProps> = ({
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
 
+  React.useEffect(() => {
+    if (isOpen) {
+      // Pick first wallet that has positive balance if current source has 0
+      const current = wallets.find(w => w.id === sourceWalletId);
+      if (!current || current.balance <= 0) {
+        const funded = wallets.find(w => w.balance > 0);
+        if (funded) setSourceWalletId(funded.id);
+      }
+    }
+  }, [isOpen, wallets]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -129,7 +140,7 @@ export const AddLoanModal: React.FC<AddLoanModalProps> = ({
             >
               {wallets.map((w) => (
                 <option key={w.id} value={w.id}>
-                  {w.name} (${w.balance.toFixed(2)})
+                  {w.name} ({currencySymbol}{w.balance.toFixed(2)})
                 </option>
               ))}
             </select>

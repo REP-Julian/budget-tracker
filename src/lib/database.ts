@@ -79,8 +79,21 @@ export const databaseApi = {
   },
 
   async upsertRemoteWallet(wallet: Wallet): Promise<boolean> {
-    const { error } = await supabase.from('bt_wallets').upsert(wallet);
-    return !error;
+    const payload = {
+      id: wallet.id,
+      name: wallet.name,
+      type: wallet.type,
+      balance: wallet.balance,
+      currency: wallet.currency,
+      icon: wallet.icon,
+      updated_at: wallet.updatedAt || new Date().toISOString(),
+    };
+    const { error } = await supabase.from('bt_wallets').upsert(payload);
+    if (error) {
+      console.warn('Upsert wallet error:', error.message);
+      return false;
+    }
+    return true;
   },
 
   async upsertRemoteTransaction(tx: Transaction): Promise<boolean> {
