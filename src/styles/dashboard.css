@@ -258,6 +258,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   box-shadow: var(--shadow-card);
   transition: var(--transition-fast);
 }
@@ -266,6 +267,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex: 1;
 }
 
 .transaction-icon-box {
@@ -275,27 +278,70 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .transaction-name {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .transaction-sub {
   font-size: var(--font-size-2xs);
   color: var(--text-muted);
-  margin-top: 2px;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.transaction-badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  flex-shrink: 0;
+}
+
+.transaction-badge.necessity {
+  background: rgba(232, 249, 83, 0.15);
+  color: var(--neon-yellow);
+  border: 1px solid rgba(232, 249, 83, 0.3);
+}
+
+.transaction-badge.discretionary {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-muted);
+}
+
+.transaction-meta {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.transaction-right-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .transaction-right {
   text-align: right;
+  flex-shrink: 0;
 }
 
 .transaction-amount {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-bold);
+  white-space: nowrap;
 }
 
 .transaction-amount.expense {

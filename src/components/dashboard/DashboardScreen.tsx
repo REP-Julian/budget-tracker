@@ -17,6 +17,7 @@ interface DashboardScreenProps {
   onAddIncome: () => void;
   onLendMoney: () => void;
   onDeleteTransaction?: (id: string) => void;
+  onViewAll?: () => void;
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({
@@ -28,6 +29,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onAddIncome,
   onLendMoney,
   onDeleteTransaction,
+  onViewAll,
 }) => {
   const sortedWallets = FinanceEngine.sortWallets(wallets);
   const totalBalance = FinanceEngine.calculateTotalLiquidBalance(sortedWallets);
@@ -74,6 +76,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         wallets={sortedWallets}
         currencySymbol={currencySymbol}
         onDeleteTransaction={onDeleteTransaction}
+        onViewAll={onViewAll}
       />
     </div>
   );

@@ -1,0 +1,240 @@
+.transactions-screen-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  padding-bottom: 96px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.tx-screen-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tx-screen-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+}
+
+.tx-screen-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--card-surface);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--card-border);
+  font-weight: 600;
+}
+
+/* Filter Card */
+.tx-filter-card {
+  background: var(--card-surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-card);
+}
+
+.tx-filter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.tx-filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tx-dropdown-select {
+  background: var(--bg-frame, #0a0d14);
+  color: var(--neon-yellow);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.tx-dropdown-select:focus {
+  border-color: var(--neon-yellow);
+}
+
+.tx-custom-date-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--card-border);
+}
+
+.tx-date-field label {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.tx-date-field input {
+  width: 100%;
+  background: var(--bg-frame, #0a0d14);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  padding: 6px 8px;
+  font-size: 12px;
+  outline: none;
+}
+
+.tx-date-field input:focus {
+  border-color: var(--neon-yellow);
+}
+
+/* Search and Type Segment */
+.tx-controls-row {
+  display: flex;
+  gap: 8px;
+}
+
+.tx-search-input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.tx-search-input {
+  width: 100%;
+  background: var(--bg-frame, #0a0d14);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px 8px 32px;
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+}
+
+.tx-search-input:focus {
+  border-color: var(--neon-yellow);
+}
+
+.tx-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.tx-type-chips {
+  display: flex;
+  background: var(--bg-frame, #0a0d14);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--card-border);
+}
+
+.tx-type-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tx-type-btn.active {
+  background: var(--card-surface);
+  color: var(--text-primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Metric Strip */
+.tx-metrics-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.tx-metric-card {
+  background: var(--card-surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.tx-metric-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+
+.tx-metric-value {
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.tx-metric-value.income {
+  color: var(--accent-green);
+}
+
+.tx-metric-value.expense {
+  color: var(--text-primary);
+}
+
+.tx-metric-value.net {
+  color: var(--neon-yellow);
+}
+
+/* Date Groups */
+.tx-date-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 4px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.tx-date-group-total {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.tx-empty-card {
+  text-align: center;
+  padding: 40px 16px;
+  background: var(--card-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}

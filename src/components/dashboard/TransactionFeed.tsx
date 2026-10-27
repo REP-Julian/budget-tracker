@@ -8,6 +8,7 @@ interface TransactionFeedProps {
   wallets: Wallet[];
   currencySymbol?: string;
   onDeleteTransaction?: (id: string) => void;
+  onViewAll?: () => void;
 }
 
 export const TransactionFeed: React.FC<TransactionFeedProps> = ({
@@ -15,8 +16,10 @@ export const TransactionFeed: React.FC<TransactionFeedProps> = ({
   wallets,
   currencySymbol = '$',
   onDeleteTransaction,
+  onViewAll,
 }) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'shop':
@@ -46,7 +49,30 @@ export const TransactionFeed: React.FC<TransactionFeedProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       <div className="transactions-header">
-        <div className="transactions-title">Transactions</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="transactions-title">Transactions</div>
+          {onViewAll && (
+            <button
+              type="button"
+              onClick={onViewAll}
+              style={{
+                background: 'rgba(232, 249, 83, 0.1)',
+                border: '1px solid rgba(232, 249, 83, 0.25)',
+                borderRadius: 'var(--radius-full)',
+                color: 'var(--neon-yellow)',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                padding: '3px 8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+              }}
+            >
+              View All →
+            </button>
+          )}
+        </div>
         <div className="transactions-total">
           {currencySymbol}
           {totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -72,16 +98,21 @@ export const TransactionFeed: React.FC<TransactionFeedProps> = ({
               >
                 {getCategoryIcon(tx.category)}
               </div>
-              <div>
+              <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="transaction-name">{tx.notes || tx.category}</div>
                 <div className="transaction-sub">
-                  {tx.notes ? `${tx.category} • ` : ''}{tx.isNecessity ? 'Necessity • ' : 'Discretionary • '}
-                  {getWalletName(tx.walletId)} • {FinanceEngine.formatTransactionDateTime(tx.date)}
+                  <span className={`transaction-badge ${tx.isNecessity ? 'necessity' : 'discretionary'}`}>
+                    {tx.isNecessity ? 'Necessity' : 'Discretionary'}
+                  </span>
+                  <span className="transaction-meta">
+                    {tx.notes ? `${tx.category} • ` : ''}
+                    {getWalletName(tx.walletId)} • {FinanceEngine.formatTransactionDateTime(tx.date)}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="transaction-right-wrapper">
               <div className="transaction-right">
                 <div
                   className={`transaction-amount ${

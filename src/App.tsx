@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardScreen } from './components/dashboard/DashboardScreen';
+import { TransactionsScreen } from './components/transactions/TransactionsScreen';
 import { StatisticsScreen } from './components/stats/StatisticsScreen';
-import { LoanLedgerScreen } from './components/loans/LoanLedgerScreen';
-import { AssetsScreen } from './components/assets/AssetsScreen';
+
+import { PortfolioScreen } from './components/portfolio/PortfolioScreen';
 import { AiAssistantScreen, AiMessage } from './components/ai/AiAssistantScreen';
 import { ProfileSettingsScreen } from './components/profile/ProfileSettingsScreen';
 import { ProfileHeaderChip } from './components/profile/ProfileHeaderChip';
@@ -647,17 +648,24 @@ export const App: React.FC = () => {
                     }}
                     onLendMoney={() => setIsLendModalOpen(true)}
                     onDeleteTransaction={handleDeleteTransaction}
+                    onViewAll={() => setCurrentTab('transactions')}
                   />
                 )}
 
-                {currentTab === 'loans' && (
-                  <LoanLedgerScreen
-                    loans={loans}
+                {currentTab === 'transactions' && (
+                  <TransactionsScreen
+                    transactions={transactions}
                     wallets={wallets}
                     currencySymbol={currencySymbol}
-                    onLendMoney={handleLendMoney}
-                    onRepayLoan={handleRepayLoan}
-                    onDeleteLoan={handleDeleteLoan}
+                    onDeleteTransaction={handleDeleteTransaction}
+                    onAddExpense={() => {
+                      setQuickAddType('expense');
+                      setIsQuickAddOpen(true);
+                    }}
+                    onAddIncome={() => {
+                      setQuickAddType('income');
+                      setIsQuickAddOpen(true);
+                    }}
                   />
                 )}
 
@@ -684,12 +692,16 @@ export const App: React.FC = () => {
                   />
                 )}
 
-                {currentTab === 'assets' && (
-                  <AssetsScreen
-                    wallets={wallets}
+                {(currentTab === 'portfolio' || currentTab === 'loans' || currentTab === 'assets') && (
+                  <PortfolioScreen
                     loans={loans}
+                    wallets={wallets}
                     assets={assets}
                     currencySymbol={currencySymbol}
+                    initialSubTab={currentTab === 'assets' ? 'assets' : 'loans'}
+                    onLendMoney={handleLendMoney}
+                    onRepayLoan={handleRepayLoan}
+                    onDeleteLoan={handleDeleteLoan}
                     onAddAsset={handleAddAsset}
                     onDeleteAsset={handleDeleteAsset}
                   />

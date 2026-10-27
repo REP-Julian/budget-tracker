@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Send, Bot, Settings, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Sparkles, Send, Bot, Settings, CheckCircle2, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { Wallet, Transaction, Loan, Asset, UserProfile, TransactionType } from '../../types';
 import { FinanceEngine } from '../../services/financeEngine';
 import { AiClientService } from '../../services/aiClientService';
@@ -10,6 +10,13 @@ export interface AiMessage {
   sender: 'assistant' | 'user';
   text: string;
   timestamp: string;
+  actionExecuted?: {
+    type: 'income' | 'expense';
+    amount: number;
+    notes?: string;
+    category?: string;
+    walletName?: string;
+  };
 }
 
 interface AiAssistantScreenProps {
@@ -61,6 +68,12 @@ export const AiAssistantScreen: React.FC<AiAssistantScreenProps> = ({
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
+    // Chat history for multi-turn context
+    const currentHistory = [...messages, userMsg].map((m) => ({
+      sender: m.sender,
+      text: m.text,
+    }));
+
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setIsGenerating(true);
@@ -89,33 +102,65 @@ export const AiAssistantScreen: React.FC<AiAssistantScreenProps> = ({
           setMessages((prev) =>
             prev.map((m) => (m.id === botMsgId ? { ...m, text: m.text + chunk } : m))
           );
-        }
+        },
+        currentHistory
       );
 
-      // Final complete text
-      setMessages((prev) =>
-        prev.map((m) => (m.id === botMsgId ? { ...m, text: response.text } : m))
-      );
+      // Process extracted action (Expense or Income)
+      let executedActionInfo: AiMessage['actionExecuted'] = undefined;
 
-      // Process extracted offline action if any
-      if (response.action && response.action.action === 'log_expense') {
-        const defaultWallet = wallets.find((w) => w.id === response.action?.walletId) || wallets[0];
-        if (defaultWallet && response.action.amount > 0) {
-          onQuickAddTransaction({
-            walletId: defaultWallet.id,
-            type: 'expense',
-            amount: response.action.amount,
-            category: response.action.category || 'Shop',
-            isNecessity: true,
-            notes: response.action.notes || 'Expense',
-          });
+      if (response.action) {
+        const isIncome = response.action.action === 'log_income';
+        const isExpense = response.action.action === 'log_expense';
+
+        if ((isIncome || isExpense) && response.action.amount > 0) {
+          const targetWallet =
+            wallets.find((w) => w.id === response.action?.walletId) ||
+            FinanceEngine.sortWallets(wallets)[0] ||
+            wallets[0];
+
+          if (targetWallet) {
+            const txType: TransactionType = isIncome ? 'income' : 'expense';
+            const cat = response.action.category || (isIncome ? 'Income' : 'Shop');
+            const noteText = response.action.notes || (isIncome ? 'Income' : 'Expense');
+            const isNec = response.action.isNecessity ?? (isExpense ? true : false);
+
+            onQuickAddTransaction({
+              walletId: targetWallet.id,
+              type: txType,
+              amount: response.action.amount,
+              category: cat,
+              isNecessity: isNec,
+              notes: noteText,
+            });
+
+            executedActionInfo = {
+              type: txType,
+              amount: response.action.amount,
+              notes: noteText,
+              category: cat,
+              walletName: targetWallet.name,
+            };
+          }
         }
       }
+
+      // Final complete text with executed action metadata
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMsgId
+            ? { ...m, text: response.text, actionExecuted: executedActionInfo }
+            : m
+        )
+      );
     } catch {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === botMsgId
-            ? { ...m, text: `I have analyzed your balances. You have ${currencySymbol}${FinanceEngine.calculateTotalLiquidBalance(wallets).toFixed(2)} in total liquid balance.` }
+            ? {
+                ...m,
+                text: `I have analyzed your balances. You have ${currencySymbol}${FinanceEngine.calculateTotalLiquidBalance(wallets).toFixed(2)} in total liquid balance. Ask me "where did my money go?" or "paano makatipid?"!`,
+              }
             : m
         )
       );
@@ -125,26 +170,40 @@ export const AiAssistantScreen: React.FC<AiAssistantScreenProps> = ({
   };
 
   /**
-   * Clean plain text rendering: no special characters, no asterisks
+   * Rich formatting: parses markdown bold (**text**), lists, bullets, and breaks
    */
   const renderFormattedText = (rawText: string) => {
     if (!rawText) {
       return (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', opacity: 0.7 }}>
-          <Sparkles size={12} className="ai-spin" /> Thinking...
+          <Sparkles size={12} className="ai-spin" /> Analyzing your finances...
         </span>
       );
     }
 
     const lines = rawText.split('\n');
+
     return (
       <div className="ai-formatted-content">
         {lines.map((line, idx) => {
           const trimmed = line.trim();
           if (!trimmed) return <div key={idx} style={{ height: '6px' }} />;
+
+          // Parse **bold** parts
+          const parts = trimmed.split(/(\*\*.*?\*\*)/g);
+
           return (
-            <p key={idx} className="ai-paragraph" style={{ margin: '3px 0', lineHeight: 1.45 }}>
-              {trimmed}
+            <p key={idx} className="ai-paragraph" style={{ margin: '3px 0', lineHeight: 1.5 }}>
+              {parts.map((part, pIdx) => {
+                if (part.startsWith('**') && part.endsWith('**')) {
+                  return (
+                    <strong key={pIdx} className="ai-highlight-bold">
+                      {part.slice(2, -2)}
+                    </strong>
+                  );
+                }
+                return part;
+              })}
             </p>
           );
         })}
@@ -172,7 +231,7 @@ export const AiAssistantScreen: React.FC<AiAssistantScreenProps> = ({
             ) : (
               <>
                 <Bot size={11} color="var(--neon-yellow)" />
-                <span>Zero-Lag Built-in Intelligence</span>
+                <span>Zero-Lag Built-in Advisor</span>
               </>
             )}
           </div>
@@ -196,16 +255,16 @@ export const AiAssistantScreen: React.FC<AiAssistantScreenProps> = ({
           {hasCustomAi ? (
             <CheckCircle2 size={15} color="var(--accent-green)" />
           ) : (
-            <AlertCircle size={15} color="var(--neon-yellow)" />
+            <Bot size={15} color="var(--neon-yellow)" />
           )}
           <div>
             <div style={{ fontSize: '11.5px', fontWeight: 800 }}>
-              {hasCustomAi ? `Model: ${profile.aiModel || 'Default Model'}` : 'Custom AI Provider Not Configured'}
+              {hasCustomAi ? `Model: ${profile.aiModel || 'Default Model'}` : 'Nova Built-in Intelligence Active'}
             </div>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
               {hasCustomAi
                 ? `Base URL: ${profile.aiBaseUrl}`
-                : 'Using fast zero-lag device heuristics. Set API key in Settings.'}
+                : 'Recognizes expenses, income, debt, and Tagalog/English budget advice.'}
             </div>
           </div>
         </div>
@@ -238,6 +297,38 @@ export const AiAssistantScreen: React.FC<AiAssistantScreenProps> = ({
         {messages.map((m) => (
           <div key={m.id} className={`ai-bubble ${m.sender}`}>
             {renderFormattedText(m.text)}
+
+            {/* Interactive Action Confirmation Card */}
+            {m.actionExecuted && (
+              <div
+                style={{
+                  marginTop: '8px',
+                  padding: '8px 10px',
+                  background: 'rgba(232, 249, 83, 0.08)',
+                  border: '1px solid rgba(232, 249, 83, 0.25)',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '11px',
+                }}
+              >
+                {m.actionExecuted.type === 'income' ? (
+                  <ArrowDownLeft size={16} color="var(--accent-green)" />
+                ) : (
+                  <ArrowUpRight size={16} color="var(--neon-yellow)" />
+                )}
+                <div>
+                  <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>
+                    Auto-Logged {m.actionExecuted.type === 'income' ? '+' : '-'}{currencySymbol}{m.actionExecuted.amount.toFixed(2)}
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                    {m.actionExecuted.notes} • {m.actionExecuted.category} • {m.actionExecuted.walletName}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div
               style={{
                 fontSize: '9.5px',
@@ -252,8 +343,29 @@ export const AiAssistantScreen: React.FC<AiAssistantScreenProps> = ({
         ))}
       </div>
 
-      {/* Quick Suggestion Chips */}
+      {/* Dynamic Smart Suggestion Chips */}
       <div className="ai-suggestions-row">
+        <button
+          className="ai-suggestion-chip"
+          disabled={isGenerating}
+          onClick={() => handleSend('Where did my money go? Breakdown my expenses')}
+        >
+          📊 Where did my money go?
+        </button>
+        <button
+          className="ai-suggestion-chip"
+          disabled={isGenerating}
+          onClick={() => handleSend('Paano makatipid? Give me advice for my budget')}
+        >
+          💡 Tips to save money
+        </button>
+        <button
+          className="ai-suggestion-chip"
+          disabled={isGenerating}
+          onClick={() => handleSend('How much allowance do I have left today?')}
+        >
+          🎒 Today's Allowance
+        </button>
         <button
           className="ai-suggestion-chip"
           disabled={isGenerating}
@@ -264,16 +376,16 @@ export const AiAssistantScreen: React.FC<AiAssistantScreenProps> = ({
         <button
           className="ai-suggestion-chip"
           disabled={isGenerating}
-          onClick={() => handleSend('Can I afford dinner tonight?')}
+          onClick={() => handleSend('Log 15 tricycle')}
         >
-          🍽️ Can I afford dinner tonight?
+          ⚡ Log 15 tricycle
         </button>
         <button
           className="ai-suggestion-chip"
           disabled={isGenerating}
-          onClick={() => handleSend('Log 150 lunch from cash')}
+          onClick={() => handleSend('Earned 500 allowance')}
         >
-          ⚡ Log 150 lunch
+          💰 Earned 500 allowance
         </button>
       </div>
 
@@ -288,7 +400,7 @@ export const AiAssistantScreen: React.FC<AiAssistantScreenProps> = ({
         <input
           type="text"
           className="ai-input-field"
-          placeholder={isGenerating ? 'Nova is thinking...' : 'Ask Nova or log an expense...'}
+          placeholder={isGenerating ? 'Nova is thinking...' : 'Ask Nova or e.g. "log 20 pamasahe"...'}
           value={input}
           disabled={isGenerating}
           onChange={(e) => setInput(e.target.value)}

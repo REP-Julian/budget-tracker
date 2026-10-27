@@ -15,6 +15,7 @@ export interface AssistantResponse {
     category?: string;
     notes?: string;
     walletId?: string;
+    isNecessity?: boolean;
   };
 }
 
@@ -25,6 +26,11 @@ export interface AiFinancialContext {
   loans: Loan[];
   assets?: Asset[];
   currencySymbol: string;
+}
+
+export interface ChatHistoryMessage {
+  sender: 'user' | 'assistant';
+  text: string;
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -69,8 +75,13 @@ export class AiClientService {
       const data = await res.json();
       const modelList: AiModelOption[] = [];
 
-      // OpenAI / OpenRouter / Ollama standard format: { data: [{ id: '...' }] } or array
-      const rawList = Array.isArray(data) ? data : Array.isArray(data.data) ? data.data : Array.isArray(data.models) ? data.models : [];
+      const rawList = Array.isArray(data)
+        ? data
+        : Array.isArray(data.data)
+        ? data.data
+        : Array.isArray(data.models)
+        ? data.models
+        : [];
 
       for (const item of rawList) {
         const id = item.id || item.name || '';
@@ -89,8 +100,22 @@ export class AiClientService {
         }
       }
 
-      // Prioritize free models first, then sort alphabetically
+      const getModelScore = (id: string) => {
+        const lower = id.toLowerCase();
+        if (lower.includes('llama-3.3-70b') || lower.includes('llama-3.1-70b')) return 100;
+        if (lower.includes('llama-3.1-8b') || lower.includes('llama-3-8b')) return 90;
+        if (lower.includes('deepseek-r1') || lower.includes('deepseek-v3')) return 80;
+        if (lower.includes('gpt-4o-mini') || lower.includes('gpt-4o')) return 70;
+        if (lower.includes('gemma2-9b')) return 60;
+        if (lower.includes('mixtral')) return 50;
+        if (lower.includes('allam')) return -50;
+        return 0;
+      };
+
       modelList.sort((a, b) => {
+        const scoreA = getModelScore(a.id);
+        const scoreB = getModelScore(b.id);
+        if (scoreA !== scoreB) return scoreB - scoreA;
         if (a.isFree && !b.isFree) return -1;
         if (!a.isFree && b.isFree) return 1;
         return a.name.localeCompare(b.name);
@@ -107,14 +132,16 @@ export class AiClientService {
   }
 
   /**
-   * Build clean context prompt and send chat completion
+   * Build clean context prompt and send chat completion with multi-turn history
    */
   public static async generateResponse(
     userPrompt: string,
     context: AiFinancialContext,
-    onToken?: (token: string) => void
+    onToken?: (token: string) => void,
+    chatHistory?: ChatHistoryMessage[]
   ): Promise<AssistantResponse> {
     const { profile, wallets, transactions, loans, assets = [], currencySymbol } = context;
+    const { income, expense, net } = FinanceEngine.calculateMonthlyIncomeAndExpense(transactions);
     const baseUrl = profile.aiBaseUrl?.trim();
     const apiKey = profile.aiApiKey?.trim();
     const model = profile.aiModel?.trim();
@@ -137,8 +164,7 @@ export class AiClientService {
       .join('\n');
 
     // 2. Monthly Cash Flow
-    const { income, expense, net } = FinanceEngine.calculateMonthlyIncomeAndExpense(transactions);
-
+    
     // 3. Daily Necessity Schedule & Today's Status
     const today = new Date();
     const dayOfWeek = today.getDay();
@@ -171,18 +197,30 @@ export class AiClientService {
       ? otherAssets.map((a) => `• ${a.name} (${a.assetClass}): ${currencySymbol}${a.value.toFixed(2)}`).join('\n')
       : '• No physical or investment assets registered.';
 
-    // 7. Recent Transactions (last 15)
+    // 7. Recent Transactions (last 20)
     const recentTxs = [...transactions]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 15);
+      .slice(0, 20);
     const recentTxLines = recentTxs.length > 0
       ? recentTxs
-          .map((tx) => `• ${FinanceEngine.formatTransactionDateTime(tx.date)} | ${tx.type === 'expense' ? '-' : '+'}${currencySymbol}${tx.amount.toFixed(2)} | ${tx.category}${tx.notes ? ` ("${tx.notes}")` : ''} | ${tx.isNecessity ? 'Daily Necessity' : 'Discretionary'}`)
+          .map((tx) => `• ${FinanceEngine.formatTransactionDateTime(tx.date)} | ${tx.type === 'expense' ? '-' : '+'}${currencySymbol}${tx.amount.toFixed(2)} | ${tx.category}${tx.notes ? ` ("${tx.notes}")` : ''} | ${tx.isNecessity ? 'Necessity' : 'Discretionary'}`)
           .join('\n')
       : '• No recent transactions.';
 
-    const systemPrompt = `You are Nova, an intelligent personal financial advisor and expense assistant inside Budget Tracker.
-You specialize in student & personal budgeting, daily necessity allowance discipline, smart cash flow management, and loan receivable tracking.
+    // Category breakdown
+    const categoryTotals: Record<string, number> = {};
+    transactions
+      .filter((t) => t.type === 'expense')
+      .forEach((t) => {
+        categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
+      });
+    const categoryLines = Object.entries(categoryTotals)
+      .sort((a, b) => b[1] - a[1])
+      .map(([cat, amt]) => `• ${cat}: ${currencySymbol}${amt.toFixed(2)}`)
+      .join('\n') || '• No expense categories recorded.';
+
+    const systemPrompt = `You are Nova, an intelligent personal financial advisor and proactive companion inside Budget Tracker.
+You specialize in student & earner budgeting, daily necessity allowance discipline, smart cash flow management, actionable saving tips, and loan receivable tracking.
 
 === REAL-TIME USER FINANCIAL CONTEXT ===
 • User: ${profile.fullName || profile.username || 'User'} (${profile.role || 'Student / Earner'})
@@ -221,16 +259,24 @@ ${loanLines}
 • Physical / Investments: ${currencySymbol}${otherAssetsTotal.toFixed(2)}
 ${assetLines}
 
-=== RECENT TRANSACTIONS (LATEST 15) ===
+=== SPENDING BY CATEGORY ===
+${categoryLines}
+
+=== RECENT TRANSACTIONS (LATEST 20) ===
 ${recentTxLines}
 
 === DIRECTIVES & BEHAVIOR ===
-1. Deep Financial Understanding: You possess complete knowledge of the user's financial status. Answer queries accurately using the context above.
-2. Savings & Schedule: Understand student budgeting rules. If user asks how much they saved, report the exact savings for today, the past 7 days, and the past 30 days. If asked about today's schedule or cap, explain whether today is a work/school day or rest day and their remaining allowance.
-3. Clean Formatting: Provide concise, structured, friendly answers. Do not use excessive markdown headers (avoid ###) or markdown tables. Use clean bullet points and bold text for numbers.
-4. Action Logging: If the user explicitly asks to log an expense or income (e.g. "bought coffee 120 from Cash", "spent 250 on lunch"), confirm it clearly and append an ACTION JSON block on a new line:
-ACTION: {"action":"log_expense","amount":120,"category":"Food","notes":"coffee","walletId":"${sortedWallets[0]?.id || ''}"}
-5. Tone: Encouraging, analytical, disciplined financial companion.`;
+1. Deep Financial Understanding: You possess complete knowledge of the user's financial status. Answer queries accurately using real numbers from the context above.
+2. Contextual Advice & Empathy: If user asks for advice or how to save, give specific, actionable steps based on their highest expense category and remaining allowance. Mention the discipline rule: unspent daily allowance should be moved to Savings Safe.
+3. Multi-turn Memory: Reference earlier conversation context seamlessly.
+4. Clean Formatting: Provide structured, concise, friendly answers. Use clean bullet points and bold numbers. Avoid markdown tables or ### headers.
+5. Action Logging Rules:
+- ONLY output an ACTION block if the user's CURRENT message explicitly commands you to record/log/spend/add a new transaction (e.g. "log 50 lunch", "pamasahe 20", "earned 500").
+- If the user asks questions, asks for breakdowns, or asks for advice, NEVER output an ACTION block or mention action functions. Just reply conversationally.
+- When logging, append the ACTION block on the very last line:
+For expense: ACTION: {"action":"log_expense","amount":50,"category":"Transport","notes":"tricycle","walletId":"${sortedWallets[0]?.id || ''}","isNecessity":true}
+For income: ACTION: {"action":"log_income","amount":500,"category":"Income","notes":"allowance","walletId":"${sortedWallets[0]?.id || ''}"}
+6. Language: If the user speaks Tagalog/Taglish (e.g., "magkano nagastos ko", "tipid tips", "utang"), reply fluently in natural friendly English or warm Taglish.`;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -239,13 +285,23 @@ ACTION: {"action":"log_expense","amount":120,"category":"Food","notes":"coffee",
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
+    // Build multi-turn messages array
+    const historyPayload = (chatHistory || [])
+      .slice(-10)
+      .filter((m) => m.text && m.text.trim())
+      .map((m) => ({
+        role: m.sender === 'user' ? ('user' as const) : ('assistant' as const),
+        content: m.text,
+      }));
+
     const requestBody = {
       model: model || 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
+        ...historyPayload,
         { role: 'user', content: userPrompt },
       ],
-      temperature: 0.3,
+      temperature: 0.35,
       stream: Boolean(onToken),
     };
 
@@ -259,16 +315,14 @@ ACTION: {"action":"log_expense","amount":120,"category":"Food","notes":"coffee",
       if (!response.ok) {
         const errorText = await response.text();
         console.warn('AI API Error:', response.status, errorText);
-        // Fall back gracefully to rule-based analysis
         const fallback = this.heuristicFallback(userPrompt, context);
         return {
-          text: `(Note: Remote AI error ${response.status}. Showing offline analysis)\n\n${fallback.text}`,
+          text: `(Note: Remote AI returned ${response.status}. Using Built-in Advisor)\n\n${fallback.text}`,
           action: fallback.action,
         };
       }
 
       if (onToken && response.body) {
-        // Stream reading
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
         let fullText = '';
@@ -307,7 +361,7 @@ ACTION: {"action":"log_expense","amount":120,"category":"Food","notes":"coffee",
       console.warn('AI Fetch error, falling back:', err.message);
       const fallback = this.heuristicFallback(userPrompt, context);
       return {
-        text: `(Offline Mode: Unable to connect to custom AI endpoint)\n\n${fallback.text}`,
+        text: `(Offline Mode: Connected to Built-in Intelligence)\n\n${fallback.text}`,
         action: fallback.action,
       };
     }
@@ -320,15 +374,21 @@ ACTION: {"action":"log_expense","amount":120,"category":"Food","notes":"coffee",
     let cleanText = rawText;
     let action: AssistantResponse['action'] = undefined;
 
-    const actionMatch = rawText.match(/ACTION:\s*({[\s\S]*})/);
+    const actionMatch = rawText.match(/ACTION:\s*({[\s\S]*?})/);
     if (actionMatch && actionMatch[1]) {
       try {
         action = JSON.parse(actionMatch[1]);
-        cleanText = rawText.replace(/ACTION:\s*{[\s\S]*}/, '').trim();
       } catch {
         // Ignore JSON parse errors
       }
     }
+
+    cleanText = rawText
+      .replace(/ACTION:\s*{[\s\S]*?}/gi, '')
+      .replace(/Log_expense\([^)]*\)/gi, '')
+      .replace(/Log_income\([^)]*\)/gi, '')
+      .replace(/```json[\s\S]*?```/gi, '')
+      .trim();
 
     return {
       text: cleanText,
@@ -337,23 +397,22 @@ ACTION: {"action":"log_expense","amount":120,"category":"Food","notes":"coffee",
   }
 
   /**
-   * Zero-lag instant rule-based fallback when offline or no API key configured.
-   * Full comprehensive coverage of savings, daily necessity, cash flow, net worth, and loans.
+   * Supercharged zero-lag built-in financial intelligence engine.
+   * Handles deep category breakdowns, income/expense logging, Tagalog & English queries,
+   * debt & loan management, discipline advice, and daily necessity calculations.
    */
   public static heuristicFallback(
     prompt: string,
     context: AiFinancialContext
   ): AssistantResponse {
-    const p = prompt.toLowerCase();
-    const { profile, wallets, transactions, loans, assets = [], currencySymbol } = context;
+    const p = prompt.toLowerCase().trim();
+    const { profile, wallets, transactions, loans, currencySymbol } = context;
 
     const sortedWallets = FinanceEngine.sortWallets(wallets);
     const totalLiquid = FinanceEngine.calculateTotalLiquidBalance(sortedWallets);
-    const { income, expense, net } = FinanceEngine.calculateMonthlyIncomeAndExpense(transactions);
-    const activeLoans = loans.filter((l) => l.status === 'active' || l.status === 'partial');
+        const activeLoans = loans.filter((l) => l.status === 'active' || l.status === 'partial');
     const totalLent = activeLoans.reduce((sum, l) => sum + l.remainingAmount, 0);
-    const totalNetWorth = FinanceEngine.calculateNetWorth(sortedWallets, loans, assets);
-
+    
     const today = new Date();
     const dayOfWeek = today.getDay();
     const activeDays = profile.activeScheduleDays && profile.activeScheduleDays.length > 0
@@ -364,51 +423,207 @@ ACTION: {"action":"log_expense","amount":120,"category":"Food","notes":"coffee",
     const todayIso = today.toISOString().slice(0, 10);
     const todayNecessity = FinanceEngine.calculateDailyNecessitySpend(transactions, todayIso, workCap, activeDays, restCap);
     const todayDayName = DAY_NAMES[dayOfWeek];
-
     const savings = FinanceEngine.calculateSavingsHistory(transactions, profile, 30);
 
-    // 1. Expense logging detection (e.g. "log 150 lunch", "spent 200 on grocery")
-    const spendMatch = prompt.match(/(?:spent|paid|log|bought|cost)\s+(?:about\s+)?(?:[\$₱€£¥]\s*)?(\d+(?:\.\d{1,2})?)\s*(?:on|for)?\s*([a-zA-Z\s]+)?/i);
-    if (spendMatch && spendMatch[1]) {
-      const amount = parseFloat(spendMatch[1]);
-      const rawTarget = (spendMatch[2] || 'expense').trim();
-      let category = 'Shop';
-      if (/food|lunch|dinner|breakfast|snack|coffee/i.test(rawTarget)) category = 'Food';
-      else if (/transport|grab|taxi|gas|fare|jeep|mrt|lrt/i.test(rawTarget)) category = 'Transport';
-      else if (/rent|house|apartment/i.test(rawTarget)) category = 'Rent';
-      else if (/school|tuition|book|course/i.test(rawTarget)) category = 'Education';
-      else if (/bill|electric|water|internet|load/i.test(rawTarget)) category = 'Bills';
+    // Default primary wallet
+    const primaryWallet = sortedWallets[0] || wallets[0];
 
-      const wallet = sortedWallets[0] || wallets[0];
+    // ----------------------------------------------------
+    // 1. SMART INCOME LOGGING (English & Tagalog)
+    // e.g. "earned 1000", "income 500", "allowance 500", "baon 150", "sweldo 5000", "received 200"
+    // ----------------------------------------------------
+    const incomeMatch = prompt.match(/(?:income|earned|allowance|baon|sweldo|sahod|received|deposit)\s+(?:about\s+)?(?:[\$₱€£¥]\s*)?(\d+(?:\.\d{1,2})?)\s*(?:from|for)?\s*([a-zA-Z\s]+)?/i) ||
+      prompt.match(/(?:[\$₱€£¥]\s*)?(\d+(?:\.\d{1,2})?)\s*(?:income|allowance|baon|sweldo|sahod)/i);
+
+    if (incomeMatch) {
+      const amount = parseFloat(incomeMatch[1]);
+      const note = (incomeMatch[2] || 'Allowance / Income').trim();
       return {
-        text: `Logged ${currencySymbol}${amount.toFixed(2)} for ${rawTarget} under ${category}.`,
+        text: `✅ Added ${currencySymbol}${amount.toFixed(2)} income to **${primaryWallet?.name || 'Wallet'}**.\n\nYour updated liquid cash balance will be ${currencySymbol}${(totalLiquid + amount).toFixed(2)}.`,
         action: {
-          action: 'log_expense',
+          action: 'log_income',
           amount,
-          category,
-          notes: rawTarget,
-          walletId: wallet?.id,
+          category: 'Income',
+          notes: note,
+          walletId: primaryWallet?.id,
         },
       };
     }
 
-    // 2. Savings queries (Today / Week / Month)
-    if (p.includes('sav') || p.includes('saved')) {
-      return {
-        text: `Here is your Daily Necessity Savings summary:
-• Today's Savings: ${currencySymbol}${savings.todaySaved.toFixed(2)} unspent allowance
-• Past 7 Days (Week): ${currencySymbol}${savings.weekSaved.toFixed(2)} saved
-• Past 30 Days (Month): ${currencySymbol}${savings.monthSaved.toFixed(2)} saved
+    // ----------------------------------------------------
+    // 2. SMART EXPENSE LOGGING (English, Filipino, Slang)
+    // Matches: "spent 50 tricycle", "pamasahe 20", "jeep 13", "tricycle 30", "lunch 120", "kain 60", "load 50"
+    // ----------------------------------------------------
+    let expenseAmount: number | null = null;
+    let expenseItem = '';
+    let expenseCategory = 'Shop';
+    let isNecessity = true;
 
-You can transfer these unspent daily funds into your Savings Safe to build up your financial cushion.`,
+    // Pattern A: "spent/paid/bought/cost 50 on X" or "log 50 lunch"
+    const expMatchA = prompt.match(/(?:spent|paid|log|bought|cost|nagastos|nagbayad|bumili|gastos)\s+(?:about\s+)?(?:[\$₱€£¥]\s*)?(\d+(?:\.\d{1,2})?)\s*(?:on|for|sa)?\s*([a-zA-Z\s]+)?/i);
+    // Pattern B: "jeep 13", "tricycle 30", "pamasahe 20", "lunch 120", "kain 50"
+    const expMatchB = prompt.match(/(jeep|trycicle|tricycle|trike|pamasahe|fare|transpo|food|lunch|dinner|breakfast|snack|meryenda|coffee|load|grocery|groceries|rent|tuition)\s+(?:[\$₱€£¥]\s*)?(\d+(?:\.\d{1,2})?)/i);
+    // Pattern C: "50 pamasahe", "13 jeep", "150 lunch"
+    const expMatchC = prompt.match(/(?:[\$₱€£¥]\s*)?(\d+(?:\.\d{1,2})?)\s+(?:sa\s+|for\s+)?(jeep|trycicle|tricycle|trike|pamasahe|fare|lunch|dinner|food|coffee|snack|load)/i);
+
+    if (expMatchA && expMatchA[1]) {
+      expenseAmount = parseFloat(expMatchA[1]);
+      expenseItem = (expMatchA[2] || 'Expense').trim();
+    } else if (expMatchB && expMatchB[2]) {
+      expenseAmount = parseFloat(expMatchB[2]);
+      expenseItem = expMatchB[1].trim();
+    } else if (expMatchC && expMatchC[1]) {
+      expenseAmount = parseFloat(expMatchC[1]);
+      expenseItem = expMatchC[2].trim();
+    }
+
+    if (expenseAmount !== null && expenseAmount > 0) {
+      const lowerItem = expenseItem.toLowerCase();
+      if (/transport|fare|jeep|trycicle|tricycle|trike|pamasahe|grab|taxi|gas|mrt|lrt/i.test(lowerItem)) {
+        expenseCategory = 'Transport';
+        isNecessity = true;
+      } else if (/food|lunch|dinner|breakfast|snack|meryenda|kain|coffee|rice|canteen/i.test(lowerItem)) {
+        expenseCategory = 'Food';
+        isNecessity = true;
+      } else if (/rent|apartment|boarding|dorm/i.test(lowerItem)) {
+        expenseCategory = 'Rent';
+        isNecessity = true;
+      } else if (/school|tuition|book|books|course|project|photocopy/i.test(lowerItem)) {
+        expenseCategory = 'Education';
+        isNecessity = true;
+      } else if (/bill|bills|electric|water|internet|wifi|load/i.test(lowerItem)) {
+        expenseCategory = 'Bills';
+        isNecessity = true;
+      } else {
+        expenseCategory = 'Shop';
+        isNecessity = false;
+      }
+
+      const formattedName = expenseItem.charAt(0).toUpperCase() + expenseItem.slice(1);
+      const remainingAfter = Math.max(0, todayNecessity.remaining - expenseAmount);
+
+      return {
+        text: `✅ Logged ${currencySymbol}${expenseAmount.toFixed(2)} for **${formattedName}** (${expenseCategory}) from **${primaryWallet?.name || 'Cash'}**.\n\n• Type: ${isNecessity ? '🎒 Daily Necessity' : '✨ Discretionary (Want)'}\n• Remaining Today: ${currencySymbol}${remainingAfter.toFixed(2)} (${remainingAfter > 0 ? 'Within Budget' : '⚠️ Over Cap'})`,
+        action: {
+          action: 'log_expense',
+          amount: expenseAmount,
+          category: expenseCategory,
+          notes: formattedName,
+          walletId: primaryWallet?.id,
+          isNecessity,
+        },
       };
     }
 
-    // 3. Daily Necessity status / cap / allowance queries
+    // ----------------------------------------------------
+    // 3. SPENDING BREAKDOWN & WHERE MONEY WENT
+    // e.g. "where did my money go", "spending breakdown", "saan napunta pera ko", "expenses"
+    // ----------------------------------------------------
+    if (
+      p.includes('breakdown') ||
+      p.includes('where did') ||
+      p.includes('saan napunta') ||
+      p.includes('category') ||
+      p.includes('highest') ||
+      p.includes('top expense')
+    ) {
+      const categoryTotals: Record<string, number> = {};
+      let totalSpent = 0;
+      let necessityTotal = 0;
+      let discretionaryTotal = 0;
+
+      transactions
+        .filter((t) => t.type === 'expense')
+        .forEach((t) => {
+          categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
+          totalSpent += t.amount;
+          if (t.isNecessity) {
+            necessityTotal += t.amount;
+          } else {
+            discretionaryTotal += t.amount;
+          }
+        });
+
+      if (totalSpent === 0) {
+        return {
+          text: `You have zero recorded expenses so far! Your total liquid cash remains intact at ${currencySymbol}${totalLiquid.toFixed(2)}.`,
+        };
+      }
+
+      const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+      const topCat = sortedCategories[0];
+      const necessityPercent = Math.round((necessityTotal / totalSpent) * 100);
+      const discretionaryPercent = 100 - necessityPercent;
+
+      const breakdownLines = sortedCategories
+        .map(([cat, amt]) => {
+          const pct = Math.round((amt / totalSpent) * 100);
+          return `• **${cat}**: ${currencySymbol}${amt.toFixed(2)} (${pct}%)`;
+        })
+        .join('\n');
+
+      return {
+        text: `📊 **Spending Breakdown (Total: ${currencySymbol}${totalSpent.toFixed(2)})**:
+${breakdownLines}
+
+💡 **Analysis**:
+• **Top Expense**: ${topCat[0]} (${currencySymbol}${topCat[1].toFixed(2)})
+• **Needs vs Wants**: ${necessityPercent}% Necessities / ${discretionaryPercent}% Wants
+${necessityPercent >= 70 ? '🎯 Great discipline! You are prioritizing necessities.' : '⚠️ Warning: Over 30% spent on wants. Consider tightening non-essentials.'}`,
+      };
+    }
+
+    // ----------------------------------------------------
+    // 4. ACTIONABLE SAVING TIPS & FINANCIAL COACHING
+    // e.g. "tips", "how to save", "paano makatipid", "advice", "budget plan"
+    // ----------------------------------------------------
+    if (
+      p.includes('tip') ||
+      p.includes('advice') ||
+      p.includes('makatipid') ||
+      p.includes('save money') ||
+      p.includes('paano mag-ipon') ||
+      p.includes('help me save')
+    ) {
+      const topTip = todayNecessity.isOverBudget
+        ? `⚠️ Today you exceeded your cap by ${currencySymbol}${(todayNecessity.spentToday - todayNecessity.dailyCap).toFixed(2)}. For dinner, choose a home meal or budget alternative to recover.`
+        : `✅ You have ${currencySymbol}${todayNecessity.remaining.toFixed(2)} remaining today. If unspent by bedtime, transfer it into your **Savings Safe**!`;
+
+      return {
+        text: `💡 **Actionable Smart Financial Tips for You**:
+
+1. **Daily Allowance Rule**: ${topTip}
+2. **Weekly Momentum**: You've saved **${currencySymbol}${savings.weekSaved.toFixed(2)}** in the past 7 days. Consistency over 30 days yields **${currencySymbol}${(savings.weekSaved * 4.3).toFixed(2)}** in reserve!
+3. **Transport Optimization**: Commuting via Jeep/Tricycle adds up. Keeping exact change or bundling trips cuts unexpected fare leakage.
+4. **Loan Collection**: You have **${currencySymbol}${totalLent.toFixed(2)}** in money lent out. Follow up with borrowers before their due dates to replenish cash.
+
+Ask me "can I afford dinner?" or "log 50 lunch" anytime!`,
+      };
+    }
+
+    // ----------------------------------------------------
+    // 5. SAVINGS DISCIPLINE QUERIES (Today / Week / Month)
+    // ----------------------------------------------------
+    if (p.includes('sav') || p.includes('ipon') || p.includes('saved')) {
+      return {
+        text: `💰 **Daily Necessity Savings Progress**:
+• **Today's Unspent Cap**: ${currencySymbol}${savings.todaySaved.toFixed(2)}
+• **Past 7 Days (Week)**: ${currencySymbol}${savings.weekSaved.toFixed(2)}
+• **Past 30 Days (Month)**: ${currencySymbol}${savings.monthSaved.toFixed(2)}
+
+🎯 **Pro-Tip**: Move this unspent daily allowance to your **Savings Safe** wallet so it doesn't get spent on wants.`,
+      };
+    }
+
+    // ----------------------------------------------------
+    // 6. DAILY NECESSITY & REMAINING ALLOWANCE STATUS
+    // ----------------------------------------------------
     if (
       p.includes('necessity') ||
       p.includes('allowance') ||
       p.includes('cap') ||
+      p.includes('natitira') ||
+      p.includes('magkano pwede') ||
       (p.includes('today') && (p.includes('spend') || p.includes('budget') || p.includes('status') || p.includes('left')))
     ) {
       const budgetStatus = todayNecessity.isOverBudget
@@ -416,77 +631,73 @@ You can transfer these unspent daily funds into your Savings Safe to build up yo
         : `✅ Within budget (${currencySymbol}${todayNecessity.remaining.toFixed(2)} remaining)`;
 
       return {
-        text: `Daily Necessity Status for Today (${todayDayName}):
-• Day Type: ${todayNecessity.isWorkDay ? '🎒 Work/School Day' : '☕ Rest Day'}
-• Daily Cap: ${currencySymbol}${todayNecessity.dailyCap.toFixed(2)}
-• Spent Today: ${currencySymbol}${todayNecessity.spentToday.toFixed(2)} (${todayNecessity.percentage}%)
-• Remaining Allowance: ${currencySymbol}${todayNecessity.remaining.toFixed(2)}
+        text: `🎒 **Daily Necessity Status (${todayDayName})**:
+• Schedule: **${todayNecessity.isWorkDay ? 'Work/School Day' : 'Rest Day'}**
+• Daily Cap: **${currencySymbol}${todayNecessity.dailyCap.toFixed(2)}**
+• Spent Today: **${currencySymbol}${todayNecessity.spentToday.toFixed(2)}** (${todayNecessity.percentage}%)
+• Remaining Allowance: **${currencySymbol}${todayNecessity.remaining.toFixed(2)}**
 • Status: ${budgetStatus}`,
       };
     }
 
-    // 4. Monthly Cash Flow (Income, Expense, Net)
-    if (p.includes('income') || p.includes('expense') || p.includes('cash flow') || p.includes('net') || p.includes('monthly')) {
-      return {
-        text: `Current Month Cash Flow Summary:
-• Total Income: ${currencySymbol}${income.toFixed(2)}
-• Total Expenses: ${currencySymbol}${expense.toFixed(2)}
-• Net Cash Flow: ${currencySymbol}${net.toFixed(2)} (${net >= 0 ? 'Surplus' : 'Deficit'})`,
-      };
-    }
-
-    // 5. Total Net Worth & Assets
-    if (p.includes('net worth') || p.includes('asset') || p.includes('wealth')) {
-      const otherAssets = assets.filter((a) => a.assetClass !== 'liquid');
-      const otherAssetsVal = otherAssets.reduce((sum, a) => sum + a.value, 0);
-      return {
-        text: `Total Net Worth: ${currencySymbol}${totalNetWorth.toFixed(2)}
-• Liquid Cash (Wallets): ${currencySymbol}${totalLiquid.toFixed(2)}
-• Active Receivables (Money Lent): ${currencySymbol}${totalLent.toFixed(2)}
-• Physical & Investment Assets: ${currencySymbol}${otherAssetsVal.toFixed(2)}`,
-      };
-    }
-
-    // 6. Who owes me money / Loans / Receivables
-    if (p.includes('owe') || p.includes('borrow') || p.includes('lent') || p.includes('loan')) {
+    // ----------------------------------------------------
+    // 7. WHO OWES ME MONEY / LOANS / RECEIVABLES
+    // ----------------------------------------------------
+    if (p.includes('owe') || p.includes('borrow') || p.includes('lent') || p.includes('loan') || p.includes('utang')) {
       if (activeLoans.length === 0) {
-        return { text: 'You currently have zero active receivables. No one owes you money right now.' };
+        return { text: '🤝 You currently have zero active receivables. No one owes you money right now.' };
       }
       const list = activeLoans
-        .map((l) => `• ${l.borrowerName}: ${currencySymbol}${l.remainingAmount.toFixed(2)} (Principal: ${currencySymbol}${l.principalAmount.toFixed(2)}${l.dueDate ? `, Due: ${l.dueDate}` : ''})`)
+        .map((l) => `• **${l.borrowerName}**: ${currencySymbol}${l.remainingAmount.toFixed(2)} (Principal: ${currencySymbol}${l.principalAmount.toFixed(2)}${l.dueDate ? `, Due: ${l.dueDate}` : ''})`)
         .join('\n');
       return {
-        text: `You have ${activeLoans.length} active borrower(s) with ${currencySymbol}${totalLent.toFixed(2)} total pending collection:\n\n${list}`,
+        text: `🤝 **Active Receivables (${activeLoans.length} borrowers)**:
+Total outstanding to collect: **${currencySymbol}${totalLent.toFixed(2)}**
+
+${list}`,
       };
     }
 
-    // 7. Wallet & Balance check
-    if (p.includes('balance') || p.includes('wallet') || p.includes('cash') || p.includes('how much money')) {
-      const breakdown = sortedWallets.map((w) => `• ${w.name}: ${currencySymbol}${w.balance.toFixed(2)}`).join('\n');
+    // ----------------------------------------------------
+    // 8. WALLET BALANCE CHECK
+    // ----------------------------------------------------
+    if (p.includes('balance') || p.includes('wallet') || p.includes('cash') || p.includes('pera') || p.includes('how much money')) {
+      const breakdown = sortedWallets.map((w) => `• **${w.name}**: ${currencySymbol}${w.balance.toFixed(2)}`).join('\n');
       return {
-        text: `Your total liquid balance is ${currencySymbol}${totalLiquid.toFixed(2)}.\n\n${breakdown}`,
+        text: `💳 **Total Liquid Balance: ${currencySymbol}${totalLiquid.toFixed(2)}**\n\n${breakdown}`,
       };
     }
 
-    // 8. Affordability check (e.g. "Can I afford dinner tonight?")
-    if (p.includes('afford') || p.includes('dinner') || p.includes('outside')) {
-      const remainingAllowance = todayNecessity.remaining;
-      const safe = remainingAllowance >= 200 || totalLiquid >= 1000;
+    // ----------------------------------------------------
+    // 9. AFFORDABILITY CHECK
+    // ----------------------------------------------------
+    if (p.includes('afford') || p.includes('dinner') || p.includes('kakayanin') || p.includes('labas')) {
+      const remaining = todayNecessity.remaining;
+      const safe = remaining >= 100 || totalLiquid >= 500;
       return {
         text: safe
-          ? `Yes, you can afford dinner tonight. You have ${currencySymbol}${remainingAllowance.toFixed(2)} remaining in today's daily allowance and ${currencySymbol}${totalLiquid.toFixed(2)} in total liquid balance.`
-          : `Caution: Your remaining daily necessity allowance is ${currencySymbol}${remainingAllowance.toFixed(2)} (Total liquid: ${currencySymbol}${totalLiquid.toFixed(2)}). Consider keeping your meal within budget.`,
+          ? `✅ **Yes, you can afford it.**\nYou have **${currencySymbol}${remaining.toFixed(2)}** remaining in today's allowance, and **${currencySymbol}${totalLiquid.toFixed(2)}** total liquid cash.`
+          : `⚠️ **Proceed with caution.**\nYour remaining daily necessity allowance is **${currencySymbol}${remaining.toFixed(2)}**. Keep your meal affordable so you don't overspend today's cap.`,
       };
     }
 
-    // Default friendly answer
+    // ----------------------------------------------------
+    // 10. DEFAULT INTELLIGENT GREETING & STATUS
+    // ----------------------------------------------------
     return {
-      text: `Hello ${profile.fullName || 'there'}. I am Nova, your financial advisor.
-• Liquid Balance: ${currencySymbol}${totalLiquid.toFixed(2)}
-• Today's Necessity Allowance: ${currencySymbol}${todayNecessity.remaining.toFixed(2)} remaining (${todayNecessity.isWorkDay ? 'Work/School' : 'Rest'} Day)
-• Saved Today: ${currencySymbol}${savings.todaySaved.toFixed(2)} | Week: ${currencySymbol}${savings.weekSaved.toFixed(2)}
+      text: `👋 Kumusta ${profile.fullName || 'there'}! I am Nova, your financial companion.
 
-Ask me about your savings, daily allowance, who owes you money, or log expenses directly!`,
+📊 **Quick Financial Snapshot**:
+• Liquid Cash: **${currencySymbol}${totalLiquid.toFixed(2)}**
+• Today's Allowance: **${currencySymbol}${todayNecessity.remaining.toFixed(2)}** left of **${currencySymbol}${todayNecessity.dailyCap.toFixed(2)}** (${todayDayName})
+• 7-Day Savings: **${currencySymbol}${savings.weekSaved.toFixed(2)}** unspent allowance
+• Receivables: **${currencySymbol}${totalLent.toFixed(2)}** (${activeLoans.length} borrowers)
+
+💬 **Try asking me**:
+• *"Where did my money go?"*
+• *"Paano makatipid?"*
+• *"Log 20 pamasahe"* or *"Earned 500 allowance"*
+• *"Who owes me money?"*`,
     };
   }
 }
