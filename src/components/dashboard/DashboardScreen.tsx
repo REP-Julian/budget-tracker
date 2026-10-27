@@ -41,7 +41,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     profile.activeScheduleDays || [1, 2, 4, 5, 6],
     profile.restDayNecessityCap !== undefined ? profile.restDayNecessityCap : 150
   );
-  const savings = FinanceEngine.calculateSavingsHistory(transactions, profile, 30);
 
   return (
     <div className="dashboard-container">
@@ -62,7 +61,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         isOverBudget={dailyNecessity.isOverBudget}
         isWorkDay={dailyNecessity.isWorkDay}
         currencySymbol={currencySymbol}
-        savings={savings}
       />
 
       <QuickActions
